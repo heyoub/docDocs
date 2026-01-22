@@ -1,0 +1,4 @@
+# UI module - VS Code UI components
+# - docExplorer.ts: Tree view for documentation explorer
+# - statusBar.ts: Status bar item for freshness display
+# - webview/: Webview implementations

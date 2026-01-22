@@ -1,0 +1,3 @@
+# Webview module - VS Code webview implementations
+# - preview.ts: Documentation preview webview
+# - graph.ts: Interactive dependency graph webview

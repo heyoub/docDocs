@@ -1,0 +1,5 @@
+# Renderer module - Output format renderers
+# - markdown.ts: Markdown documentation renderer
+# - aiContext.ts: AI context file renderer
+# - mermaid.ts: Mermaid diagram renderer
+# - templates.ts: Handlebars template definitions

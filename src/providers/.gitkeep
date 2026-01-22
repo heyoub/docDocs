@@ -1,0 +1,5 @@
+# Providers module - VS Code provider implementations
+# - codeLens.ts: CodeLens provider for doc actions
+# - completion.ts: Completion provider for doc context
+# - symbols.ts: Workspace symbol provider
+# - diagnostics.ts: Diagnostic collection for lint results

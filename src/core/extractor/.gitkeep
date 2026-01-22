@@ -1,0 +1,3 @@
+# Extractor module - Code extraction implementations
+# - lsp.ts: LSP-based symbol extraction
+# - treeSitter.ts: Tree-sitter fallback extraction

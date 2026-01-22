@@ -1,0 +1,3 @@
+# ML module - Machine learning prose generation
+# - worker.ts: Web Worker for ML inference
+# - smoother.ts: ML prose smoother interface

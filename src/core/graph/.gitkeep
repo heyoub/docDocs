@@ -1,0 +1,4 @@
+# Graph module - Dependency and call graph analysis
+# - algorithms.ts: Graph algorithms (cycle detection, topological sort)
+# - dependency.ts: Dependency graph builder
+# - call.ts: Call graph builder

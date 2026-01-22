@@ -1,0 +1,257 @@
+{
+    "name": "docdocs",
+    "displayName": "docDocs - Universal Documentation Generator",
+    "description": "LSP-powered documentation generation with JSON Schema output, Markdown rendering, and AI-optimized context files",
+    "version": "0.1.0",
+    "publisher": "heyoub.dev",
+    "license": "none",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ucats/docdocs-extension"
+    },
+    "engines": {
+        "vscode": "^1.80.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Linters",
+        "Other"
+    ],
+    "keywords": [
+        "documentation",
+        "lsp",
+        "json-schema",
+        "markdown",
+        "ai-context"
+    ],
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "main": "./dist/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "docdocs.generateFile",
+                "title": "docdocs: Generate Documentation for File"
+            },
+            {
+                "command": "docdocs.generateFolder",
+                "title": "docdocs: Generate Documentation for Folder"
+            },
+            {
+                "command": "docdocs.generateWorkspace",
+                "title": "docdocs: Generate Documentation for Workspace"
+            },
+            {
+                "command": "docdocs.checkFreshness",
+                "title": "docdocs: Check Documentation Freshness"
+            },
+            {
+                "command": "docdocs.preview",
+                "title": "docdocs: Preview Documentation"
+            },
+            {
+                "command": "docdocs.openExplorer",
+                "title": "docdocs: Open Doc Explorer"
+            },
+            {
+                "command": "docdocs.lint",
+                "title": "docdocs: Lint Documentation"
+            },
+            {
+                "command": "docdocs.showCoverage",
+                "title": "docdocs: Show Coverage Report"
+            },
+            {
+                "command": "docdocs.exportLSIF",
+                "title": "docdocs: Export LSIF Index"
+            },
+            {
+                "command": "docdocs.toggleWatch",
+                "title": "docdocs: Toggle Watch Mode"
+            }
+        ],
+        "views": {
+            "explorer": [
+                {
+                    "id": "docdocsExplorer",
+                    "name": "Doc Explorer",
+                    "icon": "$(book)",
+                    "contextualTitle": "docdocs Explorer"
+                }
+            ]
+        },
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "docdocs",
+                    "title": "docdocs",
+                    "icon": "$(book)"
+                }
+            ]
+        },
+        "configuration": {
+            "title": "docdocs",
+            "properties": {
+                "docdocs.output.directory": {
+                    "type": "string",
+                    "default": ".docdocs",
+                    "description": "Output directory for generated documentation"
+                },
+                "docdocs.output.formats": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "markdown",
+                            "ai-context",
+                            "json-schema",
+                            "openapi",
+                            "graphql",
+                            "lsif",
+                            "notebook"
+                        ]
+                    },
+                    "default": [
+                        "markdown",
+                        "ai-context"
+                    ],
+                    "description": "Output formats to generate"
+                },
+                "docdocs.ml.enabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable ML-powered prose generation"
+                },
+                "docdocs.ml.model": {
+                    "type": "string",
+                    "default": "HuggingFaceTB/SmolLM2-360M-Instruct",
+                    "description": "HuggingFace model ID for prose generation"
+                },
+                "docdocs.codeLens.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show CodeLens actions above symbols"
+                },
+                "docdocs.statusBar.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show documentation status in status bar"
+                },
+                "docdocs.statusBar.freshnessThreshold": {
+                    "type": "number",
+                    "default": 80,
+                    "description": "Freshness percentage threshold for warning color"
+                },
+                "docdocs.watch.enabled": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable watch mode for auto-regeneration"
+                },
+                "docdocs.watch.debounceMs": {
+                    "type": "number",
+                    "default": 1000,
+                    "description": "Debounce delay for watch mode regeneration"
+                },
+                "docdocs.extraction.treeSitterFallback": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Use tree-sitter when LSP is unavailable"
+                },
+                "docdocs.extraction.timeout": {
+                    "type": "number",
+                    "default": 5000,
+                    "description": "Timeout in milliseconds for LSP extraction per file"
+                }
+            }
+        },
+        "menus": {
+            "explorer/context": [
+                {
+                    "command": "docdocs.generateFile",
+                    "when": "resourceLangId",
+                    "group": "docdocs@1"
+                },
+                {
+                    "command": "docdocs.generateFolder",
+                    "when": "explorerResourceIsFolder",
+                    "group": "docdocs@2"
+                }
+            ],
+            "editor/context": [
+                {
+                    "command": "docdocs.generateFile",
+                    "when": "editorTextFocus",
+                    "group": "docdocs@1"
+                },
+                {
+                    "command": "docdocs.preview",
+                    "when": "editorTextFocus",
+                    "group": "docdocs@2"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "docdocs.generateFile",
+                    "when": "editorIsOpen"
+                },
+                {
+                    "command": "docdocs.generateFolder"
+                },
+                {
+                    "command": "docdocs.generateWorkspace"
+                },
+                {
+                    "command": "docdocs.checkFreshness"
+                },
+                {
+                    "command": "docdocs.preview",
+                    "when": "editorIsOpen"
+                },
+                {
+                    "command": "docdocs.openExplorer"
+                },
+                {
+                    "command": "docdocs.lint"
+                },
+                {
+                    "command": "docdocs.showCoverage"
+                },
+                {
+                    "command": "docdocs.exportLSIF"
+                },
+                {
+                    "command": "docdocs.toggleWatch"
+                }
+            ]
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "bun run build",
+        "build": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+        "watch": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --watch",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:coverage": "vitest run --coverage",
+        "lint": "tsc --noEmit",
+        "package": "vsce package"
+    },
+    "dependencies": {
+        "@huggingface/transformers": "^3.0.0",
+        "web-tree-sitter": "^0.25.0",
+        "@vscode/tree-sitter-wasm": "^0.0.4",
+        "ajv": "^8.12.0",
+        "handlebars": "^4.7.8",
+        "mermaid": "^10.6.0",
+        "d3": "^7.8.5"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.80.0",
+        "@types/d3": "^7.4.0",
+        "typescript": "^5.3.0",
+        "vitest": "^1.0.0",
+        "fast-check": "^3.14.0",
+        "@vscode/test-electron": "^2.3.0",
+        "esbuild": "^0.19.0"
+    }
+}

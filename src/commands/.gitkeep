@@ -1,0 +1,5 @@
+# Commands module - VS Code command implementations
+# - generate.ts: Generate documentation commands
+# - preview.ts: Preview documentation command
+# - lint.ts: Lint documentation command
+# - export.ts: Export LSIF and multi-format commands

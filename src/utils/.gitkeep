@@ -1,0 +1,4 @@
+# Utils module - Utility functions
+# - hash.ts: Content and file hashing
+# - tokens.ts: Token estimation and truncation
+# - result.ts: Result type helpers

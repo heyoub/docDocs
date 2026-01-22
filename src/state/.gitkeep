@@ -1,0 +1,4 @@
+# State module - Extension state management
+# - freshness.ts: Documentation freshness tracking
+# - config.ts: Configuration management
+# - cache.ts: LSP extraction cache

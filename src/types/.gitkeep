@@ -1,0 +1,8 @@
+# Types module - TypeScript type definitions
+# - base.ts: Base types (FileURI, Position, Range, Result)
+# - symbols.ts: Symbol types (SymbolKind, SymbolModifier)
+# - extraction.ts: Extraction types (ExtractedSymbol, FileExtraction)
+# - schema.ts: Schema types (SymbolSchema, ModuleSchema)
+# - graph.ts: Graph types (DependencyGraph, CallGraph)
+# - config.ts: Configuration types (GenDocsConfig)
+# - lint.ts: Lint types (LintRule, LintResult)

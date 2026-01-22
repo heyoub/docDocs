@@ -1,0 +1,3 @@
+# Linter module - Documentation quality linting
+# - rules.ts: Individual lint rule implementations
+# - linter.ts: Lint orchestration and coverage calculation
