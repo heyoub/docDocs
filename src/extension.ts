@@ -139,14 +139,14 @@ function registerUtilityCommands(
 ): void {
     // Open Doc Explorer command
     context.subscriptions.push(
-        vscode.commands.registerCommand('gendocs.openDocExplorer', () => {
-            vscode.commands.executeCommand('workbench.view.extension.gendocs');
+        vscode.commands.registerCommand('docdocs.openExplorer', () => {
+            vscode.commands.executeCommand('workbench.view.extension.docdocs');
         })
     );
 
     // Refresh Doc Explorer command
     context.subscriptions.push(
-        vscode.commands.registerCommand('gendocs.refreshDocExplorer', () => {
+        vscode.commands.registerCommand('docdocs.refreshExplorer', () => {
             docExplorer.refresh();
             codeLensProvider.refresh();
         })
@@ -154,16 +154,16 @@ function registerUtilityCommands(
 
     // Open documentation for a file
     context.subscriptions.push(
-        vscode.commands.registerCommand('gendocs.openDocumentation', async (uri: string) => {
+        vscode.commands.registerCommand('docdocs.openDocumentation', async (uri: string) => {
             const docUri = vscode.Uri.parse(uri);
-            await vscode.commands.executeCommand('gendocs.previewDocumentation', docUri);
+            await vscode.commands.executeCommand('docdocs.preview', docUri);
         })
     );
 
     // Toggle watch mode
     let watchMode = false;
     context.subscriptions.push(
-        vscode.commands.registerCommand('gendocs.toggleWatchMode', () => {
+        vscode.commands.registerCommand('docdocs.toggleWatch', () => {
             watchMode = !watchMode;
             statusBar.setWatching(watchMode);
             vscode.window.showInformationMessage(
@@ -231,8 +231,31 @@ function setupFileWatchers(
  * @param statusBar - The status bar instance to update
  * @returns void
  */
-function updateFreshnessStatus(statusBar: ReturnType<typeof registerStatusBar>): void {
-    // This would normally query the freshness tracker
-    // For now, just show placeholder values
-    statusBar.setFreshness(0, 0);
+async function updateFreshnessStatus(statusBar: ReturnType<typeof registerStatusBar>): Promise<void> {
+    const folder = vscode.workspace.workspaceFolders?.[0];
+    if (!folder) {
+        statusBar.setFreshness(0, 0);
+        return;
+    }
+
+    try {
+        const files = await vscode.workspace.findFiles(
+            '**/*.{ts,js,py,rs,go,hs}',
+            '**/node_modules/**',
+            100 // Limit for performance
+        );
+
+        // Count documented files (those with entries in freshness store)
+        const store = await import('./state/freshness.js');
+        const freshnessStore = store.getStore();
+        const totalTracked = Object.keys(freshnessStore.files).length;
+
+        // Simple heuristic: files in store are "fresh", total files - tracked are "stale"
+        const freshCount = totalTracked;
+        const staleCount = Math.max(0, files.length - totalTracked);
+
+        statusBar.setFreshness(freshCount, staleCount);
+    } catch {
+        statusBar.setFreshness(0, 0);
+    }
 }

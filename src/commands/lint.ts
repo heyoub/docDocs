@@ -7,12 +7,14 @@
  */
 
 import * as vscode from 'vscode';
+import * as crypto from 'crypto';
 import type { FileURI, FileExtraction, ModuleSchema } from '../types/index.js';
 import { extractSymbols } from '../core/extractor/lsp.js';
 import { generateModuleSchema, generateWorkspaceSchema } from '../core/schema/generator.js';
 import { lint, calculateCoverage } from '../core/linter/linter.js';
 import { loadConfig, getDefault } from '../state/config.js';
 import { GenDocsDiagnosticsManager } from '../providers/diagnostics.js';
+import { checkFreshness as checkFileFreshness, getStatistics } from '../state/freshness.js';
 
 // ============================================================
 // Diagnostics Manager Instance
@@ -125,6 +127,92 @@ export async function lintDocumentationCommand(): Promise<void> {
 }
 
 /**
+ * Computes hash of file content.
+ */
+function computeHash(content: string): string {
+    return crypto.createHash('sha256').update(content).digest('hex').slice(0, 16);
+}
+
+/**
+ * Checks documentation freshness for the current file or workspace.
+ */
+export async function checkFreshnessCommand(): Promise<void> {
+    const editor = vscode.window.activeTextEditor;
+
+    if (editor) {
+        // Check freshness for current file
+        const uri = editor.document.uri;
+        const content = editor.document.getText();
+        const currentHash = computeHash(content);
+        const fileUri = uri.toString() as FileURI;
+
+        const status = checkFileFreshness(fileUri, currentHash);
+
+        const statusIcon = status.status === 'fresh' ? '✅' :
+                          status.status === 'stale' ? '⚠️' :
+                          status.status === 'orphaned' ? '🗑️' : '❓';
+
+        const message = `${statusIcon} Documentation Status: ${status.status.toUpperCase()}`;
+        const detail = status.lastGenerated
+            ? `Last generated: ${status.lastGenerated.toLocaleString()}`
+            : 'No documentation found for this file';
+
+        vscode.window.showInformationMessage(`${message}\n${detail}`);
+    } else {
+        // Check freshness for entire workspace
+        const folder = vscode.workspace.workspaceFolders?.[0];
+        if (!folder) {
+            vscode.window.showErrorMessage('No workspace folder open');
+            return;
+        }
+
+        await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: 'Checking Documentation Freshness',
+                cancellable: false,
+            },
+            async (progress) => {
+                const files = await vscode.workspace.findFiles(
+                    '**/*.{ts,js,py,rs,go,hs}',
+                    '**/node_modules/**'
+                );
+
+                const currentHashes = new Map<FileURI, string>();
+                const existingFiles = new Set<string>();
+
+                for (const file of files) {
+                    progress.report({ message: `Checking ${file.fsPath}` });
+
+                    try {
+                        const content = await vscode.workspace.fs.readFile(file);
+                        const decoder = new TextDecoder();
+                        const text = decoder.decode(content);
+                        const hash = computeHash(text);
+
+                        const fileUri = file.toString() as FileURI;
+                        currentHashes.set(fileUri, hash);
+                        existingFiles.add(fileUri);
+                    } catch {
+                        // Skip files that can't be read
+                    }
+                }
+
+                const stats = getStatistics(currentHashes, existingFiles);
+
+                const message = `Documentation Freshness:\n` +
+                    `✅ Fresh: ${stats.fresh}\n` +
+                    `⚠️ Stale: ${stats.stale}\n` +
+                    `🗑️ Orphaned: ${stats.orphaned}\n` +
+                    `📊 Total: ${stats.total}`;
+
+                vscode.window.showInformationMessage(message);
+            }
+        );
+    }
+}
+
+/**
  * Shows documentation coverage report.
  */
 export async function showCoverageReportCommand(): Promise<void> {
@@ -190,7 +278,8 @@ export async function showCoverageReportCommand(): Promise<void> {
  */
 export function registerLintCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-        vscode.commands.registerCommand('gendocs.lintDocumentation', lintDocumentationCommand),
-        vscode.commands.registerCommand('gendocs.showCoverageReport', showCoverageReportCommand)
+        vscode.commands.registerCommand('docdocs.lint', lintDocumentationCommand),
+        vscode.commands.registerCommand('docdocs.showCoverage', showCoverageReportCommand),
+        vscode.commands.registerCommand('docdocs.checkFreshness', checkFreshnessCommand)
     );
 }

@@ -259,20 +259,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'assets', 'style.css')
     );
 
-    const nonce = getNonce();
-
+    // CSP must allow webview source for ES modules
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'unsafe-inline';">
     <link href="${styleUri}" rel="stylesheet">
     <title>DocDocs</title>
 </head>
 <body>
     <div id="root"></div>
-    <script nonce="${nonce}" src="${scriptUri}"></script>
+    <script type="module" src="${scriptUri}"></script>
 </body>
 </html>`;
   }

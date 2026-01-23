@@ -15,12 +15,15 @@ export default defineConfig({
         onboarding: resolve(__dirname, 'onboarding/index.html'),
       },
       output: {
-        entryFileNames: (chunkInfo) => {
-          // Map entry names to their output paths
-          return `${chunkInfo.name}/${chunkInfo.name}.js`;
+        entryFileNames: '[name]/[name].js',
+        chunkFileNames: 'shared/[name].js',
+        assetFileNames: (assetInfo) => {
+          // Keep CSS filename stable for webview providers
+          if (assetInfo.name?.endsWith('.css')) {
+            return 'assets/style.css';
+          }
+          return 'assets/[name]-[hash][extname]';
         },
-        chunkFileNames: 'shared/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash][extname]',
       },
     },
     sourcemap: true,

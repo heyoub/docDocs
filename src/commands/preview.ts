@@ -101,7 +101,7 @@ export async function previewDocumentationCommand(uri?: vscode.Uri): Promise<voi
  */
 export function registerPreviewCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-        vscode.commands.registerCommand('gendocs.previewDocumentation', previewDocumentationCommand)
+        vscode.commands.registerCommand('docdocs.preview', previewDocumentationCommand)
     );
 
     // Dispose preview manager on deactivation

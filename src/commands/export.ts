@@ -251,8 +251,8 @@ export async function exportOpenAPICommand(): Promise<void> {
  */
 export function registerExportCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-        vscode.commands.registerCommand('gendocs.exportLSIF', exportLSIFCommand),
-        vscode.commands.registerCommand('gendocs.exportOpenAPI', exportOpenAPICommand)
+        vscode.commands.registerCommand('docdocs.exportLSIF', exportLSIFCommand),
+        vscode.commands.registerCommand('docdocs.exportOpenAPI', exportOpenAPICommand)
     );
 }
 
