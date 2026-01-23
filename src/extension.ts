@@ -26,6 +26,8 @@ import { registerDocExplorer } from './ui/docExplorer.js';
 import { registerStatusBar } from './ui/statusBar.js';
 import { registerPreviewPanel } from './ui/webview/preview.js';
 import { registerGraphPanel } from './ui/webview/graph.js';
+import { registerSidebarProvider } from './ui/sidebarProvider.js';
+import { registerDashboardProvider, registerOnboardingProvider } from './ui/dashboardProvider.js';
 
 // State
 import { restore as restoreFreshness, persist as persistFreshness } from './state/freshness.js';
@@ -77,6 +79,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const statusBar = registerStatusBar(context);
     registerPreviewPanel(context);
     registerGraphPanel(context);
+
+    // Register webview providers (React-based UI)
+    registerSidebarProvider(context);
+    registerDashboardProvider(context);
+    registerOnboardingProvider(context);
 
     // Register additional commands
     registerUtilityCommands(context, codeLensProvider, docExplorer, statusBar);

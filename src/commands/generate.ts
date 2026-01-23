@@ -359,6 +359,91 @@ export async function generateForWorkspaceCommand(): Promise<void> {
     }
 }
 
+/**
+ * Generates documentation for the current selection in the editor.
+ * @returns Promise that resolves when generation is complete
+ */
+export async function generateForSelectionCommand(): Promise<void> {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        vscode.window.showErrorMessage('No active editor');
+        return;
+    }
+
+    const selection = editor.selection;
+    if (selection.isEmpty) {
+        vscode.window.showErrorMessage('No text selected');
+        return;
+    }
+
+    const document = editor.document;
+    const folder = vscode.workspace.getWorkspaceFolder(document.uri);
+    if (!folder) {
+        vscode.window.showErrorMessage('File is not in a workspace');
+        return;
+    }
+
+    await vscode.window.withProgress(
+        {
+            location: vscode.ProgressLocation.Notification,
+            title: 'Generating Documentation for Selection',
+            cancellable: true,
+        },
+        async (progress, token) => {
+            progress.report({ message: 'Extracting symbols from selection...' });
+
+            // Get symbols within the selection range
+            const symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
+                'vscode.executeDocumentSymbolProvider',
+                document.uri
+            );
+
+            if (!symbols || symbols.length === 0) {
+                vscode.window.showErrorMessage('No symbols found in selection');
+                return;
+            }
+
+            // Filter symbols that intersect with the selection
+            const selectedSymbols = symbols.filter(symbol =>
+                selection.intersection(symbol.range) !== undefined
+            );
+
+            if (selectedSymbols.length === 0) {
+                vscode.window.showErrorMessage('No symbols found in selection');
+                return;
+            }
+
+            if (token.isCancellationRequested) return;
+
+            progress.report({ message: `Found ${selectedSymbols.length} symbols, generating...` });
+
+            // Generate docs for the file (full file extraction is required for context)
+            const configResult = await loadConfig(folder);
+            const config = configResult.ok ? configResult.value : getDefault();
+
+            const schema = await generateForFile(document.uri);
+            if (!schema) {
+                vscode.window.showErrorMessage('Failed to extract symbols');
+                return;
+            }
+
+            if (token.isCancellationRequested) return;
+
+            progress.report({ message: 'Writing output...' });
+            await writeOutput(schema, config, folder);
+
+            const fileUri = document.uri.toString() as FileURI;
+            const sourceHash = await contentHash(document.getText());
+            const docHash = await contentHash(JSON.stringify(schema));
+            recordGeneration(fileUri, sourceHash, docHash);
+
+            vscode.window.showInformationMessage(
+                `Documentation generated for ${selectedSymbols.length} symbols`
+            );
+        }
+    );
+}
+
 // ============================================================
 // Registration
 // ============================================================
@@ -370,9 +455,15 @@ export async function generateForWorkspaceCommand(): Promise<void> {
  */
 export function registerGenerateCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
+        // Support both command naming conventions for backwards compatibility
         vscode.commands.registerCommand('gendocs.generateDocumentation', generateForFileCommand),
         vscode.commands.registerCommand('gendocs.generateForFolder', generateForFolderCommand),
-        vscode.commands.registerCommand('gendocs.generateForWorkspace', generateForWorkspaceCommand)
+        vscode.commands.registerCommand('gendocs.generateForWorkspace', generateForWorkspaceCommand),
+        // New docdocs.* commands
+        vscode.commands.registerCommand('docdocs.generateFile', generateForFileCommand),
+        vscode.commands.registerCommand('docdocs.generateFolder', generateForFolderCommand),
+        vscode.commands.registerCommand('docdocs.generateWorkspace', generateForWorkspaceCommand),
+        vscode.commands.registerCommand('docdocs.generateSelection', generateForSelectionCommand)
     );
 }
 

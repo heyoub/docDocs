@@ -17,11 +17,12 @@ import { contentHash } from '../utils/hash.js';
 // ============================================================
 
 /** Configuration key for enabling/disabling CodeLens */
-const CONFIG_CODELENS_ENABLED = 'gendocs.codeLens.enabled';
+const CONFIG_CODELENS_ENABLED = 'docdocs.codeLens.enabled';
 
 /** Command IDs for CodeLens actions */
-const COMMAND_GENERATE_DOCS = 'gendocs.generateDocsForSymbol';
-const COMMAND_VIEW_DOCS = 'gendocs.viewDocsForSymbol';
+const COMMAND_GENERATE_DOCS = 'docdocs.generateDocsForSymbol';
+const COMMAND_VIEW_DOCS = 'docdocs.viewDocsForSymbol';
+const COMMAND_CHECK_FRESHNESS = 'docdocs.checkFreshnessForSymbol';
 
 // ============================================================
 // Types
@@ -308,7 +309,7 @@ export function registerCodeLensProvider(
         COMMAND_GENERATE_DOCS,
         async (data: CodeLensData) => {
             await vscode.commands.executeCommand(
-                'gendocs.generateDocumentation',
+                'docdocs.generateFile',
                 vscode.Uri.parse(data.uri),
                 data.symbolName
             );
@@ -321,15 +322,27 @@ export function registerCodeLensProvider(
         COMMAND_VIEW_DOCS,
         async (data: CodeLensData) => {
             await vscode.commands.executeCommand(
-                'gendocs.previewDocumentation',
+                'docdocs.preview',
                 vscode.Uri.parse(data.uri),
                 data.symbolName
             );
         }
     );
 
+    // Register the Check Freshness command
+    const freshnessCommand = vscode.commands.registerCommand(
+        COMMAND_CHECK_FRESHNESS,
+        async (data: CodeLensData) => {
+            await vscode.commands.executeCommand(
+                'docdocs.checkFreshness',
+                vscode.Uri.parse(data.uri)
+            );
+            provider.refresh();
+        }
+    );
+
     // Add all disposables to context
-    context.subscriptions.push(providerDisposable, generateCommand, viewCommand, provider);
+    context.subscriptions.push(providerDisposable, generateCommand, viewCommand, freshnessCommand, provider);
 
     return provider;
 }
