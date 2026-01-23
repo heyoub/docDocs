@@ -61,15 +61,15 @@ export interface EmbeddedChunk extends Chunk {
 
 export interface SearchQuery {
   q: string;
-  k?: number;
-  min?: number;
-  types?: ContentType[];
-  levels?: HierarchyLevel[];
-  path?: string;
-  lang?: string;
-  hybrid?: boolean;
-  alpha?: number;
-  rerank?: boolean;
+  k?: number | undefined;
+  min?: number | undefined;
+  types?: ContentType[] | undefined;
+  levels?: HierarchyLevel[] | undefined;
+  path?: string | undefined;
+  lang?: string | undefined;
+  hybrid?: boolean | undefined;
+  alpha?: number | undefined;
+  rerank?: boolean | undefined;
 }
 
 export interface SearchHit {
