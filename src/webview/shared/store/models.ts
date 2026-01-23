@@ -113,6 +113,7 @@ export const modelsByCategoryAtom = atom((get) => {
     code: models.filter((m) => m.category === 'code'),
     general: models.filter((m) => m.category === 'general'),
     reasoning: models.filter((m) => m.category === 'reasoning'),
+    embedding: models.filter((m) => m.category === 'embedding'),
   };
 });
 
@@ -181,7 +182,7 @@ export const bestRecommendedModelAtom = atom((get) => {
 // Filter State
 // ============================================================================
 
-export type ModelCategoryFilter = 'all' | 'code' | 'general' | 'reasoning';
+export type ModelCategoryFilter = 'all' | 'code' | 'general' | 'reasoning' | 'embedding';
 export type ModelStatusFilter = 'all' | 'downloaded' | 'not-downloaded';
 
 export const modelCategoryFilterAtom = atom<ModelCategoryFilter>('all');

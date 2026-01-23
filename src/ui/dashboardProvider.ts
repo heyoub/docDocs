@@ -489,7 +489,7 @@ export class DashboardProvider {
       },
       ml: {
         enabled: config.get('ml.enabled', false),
-        model: config.get('ml.model', 'HuggingFaceTB/SmolLM2-360M-Instruct'),
+        model: config.get('ml.model', 'tiiuae/Falcon-H1-Tiny-Coder-90M'),
       },
       codeLens: {
         enabled: config.get('codeLens.enabled', true),

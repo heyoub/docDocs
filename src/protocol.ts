@@ -138,7 +138,7 @@ export interface ChangelogEntry {
 // Model Management Types
 // ============================================================================
 
-export type ModelCategory = 'code' | 'general' | 'reasoning';
+export type ModelCategory = 'code' | 'general' | 'reasoning' | 'embedding';
 export type ModelProvider = 'huggingface' | 'local';
 
 export interface ModelRequirements {
@@ -208,6 +208,105 @@ export interface ModelManagerState {
 }
 
 // ============================================================================
+// Vector Search Types
+// ============================================================================
+
+export type ContentType = 'code' | 'docs' | 'comments' | 'commits' | 'prs';
+export type HierarchyLevel = 'project' | 'module' | 'file' | 'symbol';
+
+export interface VectorSearchOptions {
+  query: string;
+  limit?: number;
+  minScore?: number;
+  contentTypes?: ContentType[];
+  levels?: HierarchyLevel[];
+  pathPattern?: string;
+  language?: string;
+  hybrid?: boolean;
+  rerank?: boolean;
+}
+
+export interface VectorSearchResult {
+  id: string;
+  content: string;
+  contentType: ContentType;
+  level: HierarchyLevel;
+  filePath: string;
+  symbolName?: string;
+  symbolKind?: string;
+  lineRange?: { start: number; end: number };
+  score: number;
+  highlights?: string[];
+}
+
+export interface VectorSearchResponse {
+  results: VectorSearchResult[];
+  query: string;
+  totalMatches: number;
+  searchTimeMs: number;
+}
+
+// ============================================================================
+// Indexer Types
+// ============================================================================
+
+export type IndexerState = 'idle' | 'indexing' | 'paused' | 'error';
+
+export interface IndexerStatus {
+  state: IndexerState;
+  currentFile?: string;
+  filesProcessed: number;
+  filesTotal: number;
+  chunksIndexed: number;
+  errorsCount: number;
+  startedAt?: number;
+  eta?: number;
+  lastError?: string;
+}
+
+export interface IndexerStats {
+  totalChunks: number;
+  byContentType: Record<ContentType, number>;
+  byLevel: Record<HierarchyLevel, number>;
+  totalSizeBytes: number;
+  lastIndexedAt: number;
+}
+
+// ============================================================================
+// Incoherence Types
+// ============================================================================
+
+export type IncoherenceType =
+  | 'outdated'
+  | 'missing'
+  | 'mismatch'
+  | 'incomplete'
+  | 'orphaned'
+  | 'semantic-drift';
+
+export interface Incoherence {
+  id: string;
+  filePath: string;
+  symbolName?: string;
+  type: IncoherenceType;
+  severity: number;
+  description: string;
+  suggestedFix?: string;
+  codeSnippet?: string;
+  docSnippet?: string;
+  lineRange?: { start: number; end: number };
+}
+
+export interface IncoherenceSummary {
+  totalFiles: number;
+  filesWithIssues: number;
+  totalIncoherences: number;
+  byType: Record<IncoherenceType, number>;
+  bySeverity: { high: number; medium: number; low: number };
+  averageCoherence: number;
+}
+
+// ============================================================================
 // Extension → Webview Messages
 // ============================================================================
 
@@ -233,7 +332,13 @@ export type ToWebview =
   | { type: 'model:download:progress'; payload: DownloadProgress }
   | { type: 'model:download:complete'; payload: { modelId: string; path: string } }
   | { type: 'model:download:error'; payload: { modelId: string; error: string } }
-  | { type: 'model:selected'; payload: { modelId: string | null } };
+  | { type: 'model:selected'; payload: { modelId: string | null } }
+  // Vector search messages
+  | { type: 'vector:search:results'; payload: VectorSearchResponse }
+  | { type: 'vector:indexer:status'; payload: IndexerStatus }
+  | { type: 'vector:indexer:stats'; payload: IndexerStats }
+  | { type: 'vector:incoherence:summary'; payload: IncoherenceSummary }
+  | { type: 'vector:incoherence:file'; payload: { filePath: string; incoherences: Incoherence[] } };
 
 // ============================================================================
 // Webview → Extension Messages
@@ -255,7 +360,15 @@ export type ToExtension =
   | { type: 'model:download'; payload: { modelId: string } }
   | { type: 'model:download:cancel'; payload: { modelId: string } }
   | { type: 'model:delete'; payload: { modelId: string } }
-  | { type: 'model:select'; payload: { modelId: string } };
+  | { type: 'model:select'; payload: { modelId: string } }
+  // Vector search messages
+  | { type: 'vector:search'; payload: VectorSearchOptions }
+  | { type: 'vector:indexer:start' }
+  | { type: 'vector:indexer:pause' }
+  | { type: 'vector:indexer:resume' }
+  | { type: 'vector:indexer:clear' }
+  | { type: 'vector:indexer:status' }
+  | { type: 'vector:incoherence:analyze'; payload?: { filePath?: string } };
 
 // ============================================================================
 // Initial Data Bundle

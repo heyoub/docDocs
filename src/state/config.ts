@@ -102,7 +102,7 @@ const DEFAULT_VALIDATION: ValidationConfig = {
  */
 const DEFAULT_ML: MLConfig = {
     enabled: false,
-    model: 'HuggingFaceTB/SmolLM2-135M-Instruct',
+    model: 'tiiuae/Falcon-H1-Tiny-Coder-90M',  // Registry recommended model
     device: 'auto',
     maxTokens: 4000,
     generateSummaries: true,

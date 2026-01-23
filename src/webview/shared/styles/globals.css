@@ -279,14 +279,27 @@
 }
 
 @layer components {
-  /* Glass effect for cards */
+  /* Glass morphism effects */
   .glass {
     background: oklch(from var(--card) l c h / 0.8);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+  }
+
+  .glass-subtle {
+    background: oklch(from var(--background) l c h / 0.6);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
   }
 
-  /* Gradient text */
+  .glass-card {
+    background: oklch(from var(--card) l c h / 0.7);
+    backdrop-filter: blur(16px) saturate(200%);
+    -webkit-backdrop-filter: blur(16px) saturate(200%);
+    border: 1px solid oklch(from var(--border) l c h / 0.5);
+  }
+
+  /* Gradient text variations */
   .gradient-text {
     background: linear-gradient(
       135deg,
@@ -298,13 +311,159 @@
     background-clip: text;
   }
 
-  /* Glow effect for primary elements */
+  .gradient-text-success {
+    background: linear-gradient(135deg, var(--success) 0%, var(--primary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-text-accent {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glow effects */
   .glow {
     box-shadow: 0 0 20px oklch(from var(--primary) l c h / 0.3);
   }
 
+  .glow-sm {
+    box-shadow: 0 0 10px oklch(from var(--primary) l c h / 0.2);
+  }
+
+  .glow-lg {
+    box-shadow: 0 0 40px oklch(from var(--primary) l c h / 0.4);
+  }
+
+  .glow-success {
+    box-shadow: 0 0 20px oklch(from var(--success) l c h / 0.3);
+  }
+
+  .glow-warning {
+    box-shadow: 0 0 20px oklch(from var(--warning) l c h / 0.3);
+  }
+
   .dark .glow {
     box-shadow: 0 0 20px oklch(from var(--primary) l c h / 0.4);
+  }
+
+  .dark .glow-sm {
+    box-shadow: 0 0 10px oklch(from var(--primary) l c h / 0.3);
+  }
+
+  .dark .glow-lg {
+    box-shadow: 0 0 40px oklch(from var(--primary) l c h / 0.5);
+  }
+
+  /* Gradient backgrounds */
+  .bg-gradient-primary {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--chart-3) 100%);
+  }
+
+  .bg-gradient-subtle {
+    background: linear-gradient(180deg,
+      oklch(from var(--muted) l c h / 0.5) 0%,
+      transparent 100%
+    );
+  }
+
+  .bg-gradient-radial {
+    background: radial-gradient(
+      ellipse at center,
+      oklch(from var(--primary) l c h / 0.1) 0%,
+      transparent 70%
+    );
+  }
+
+  /* Shimmer loading effect */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      oklch(from var(--muted) l c h / 0) 0%,
+      oklch(from var(--muted) l c h / 0.5) 50%,
+      oklch(from var(--muted) l c h / 0) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Card hover effects */
+  .card-interactive {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  .card-interactive:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: oklch(from var(--primary) l c h / 0.3);
+  }
+
+  .card-interactive:active {
+    transform: translateY(0);
+  }
+
+  /* Pill/chip styles */
+  .pill {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+    @apply border border-border bg-muted/50;
+  }
+
+  .pill-primary {
+    @apply bg-primary/10 text-primary border-primary/20;
+  }
+
+  .pill-success {
+    @apply bg-success/10 text-success border-success/20;
+  }
+
+  .pill-warning {
+    @apply bg-warning/10 text-warning border-warning/20;
+  }
+
+  /* Indicator dots */
+  .indicator-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .indicator-dot-success {
+    @apply bg-success;
+    box-shadow: 0 0 8px var(--success);
+  }
+
+  .indicator-dot-warning {
+    @apply bg-warning;
+    box-shadow: 0 0 8px var(--warning);
+  }
+
+  .indicator-dot-error {
+    @apply bg-error;
+    box-shadow: 0 0 8px var(--error);
+  }
+
+  /* Subtle borders with glow */
+  .border-glow {
+    border: 1px solid oklch(from var(--primary) l c h / 0.3);
+    box-shadow:
+      0 0 0 1px oklch(from var(--primary) l c h / 0.1),
+      0 0 20px -5px oklch(from var(--primary) l c h / 0.2);
+  }
+
+  /* Progress bar enhancements */
+  .progress-glow::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: inherit;
+    filter: blur(8px);
+    opacity: 0.5;
   }
 }
 

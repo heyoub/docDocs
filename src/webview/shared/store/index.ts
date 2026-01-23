@@ -111,6 +111,10 @@ export const activePageAtom = atom<
   'overview' | 'coverage' | 'freshness' | 'changelog' | 'settings'
 >('overview');
 
+// Sidebar tab state (mobile-style tabs)
+export type SidebarTab = 'overview' | 'actions' | 'models';
+export const sidebarTabAtom = atom<SidebarTab>('overview');
+
 // ============================================================================
 // Filters & Search
 // ============================================================================

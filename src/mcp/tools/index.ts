@@ -14,6 +14,7 @@ import {
   getHighImportanceFiles,
   getUndocumentedHighPriority,
 } from '../heuristics/importance.js';
+import { registerVectorTools } from './vector.js';
 import {
   analyzeComplexity,
   analyzeComplexityBatch,
@@ -681,4 +682,7 @@ export function registerTools(server: McpServer): void {
       };
     }
   );
+
+  // Register vector search tools
+  registerVectorTools(server);
 }

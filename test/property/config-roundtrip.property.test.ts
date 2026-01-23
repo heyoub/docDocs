@@ -76,6 +76,8 @@ const arbGlobPattern = fc.stringMatching(/^(\*\*\/)?[a-z*]+(\.[a-z*]+)?$/);
  * Generates a valid HuggingFace model ID.
  */
 const arbModelId = fc.constantFrom(
+    'tiiuae/Falcon-H1-Tiny-Coder-90M',
+    'ibm-granite/granite-4.0-nano-350m-instruct',
     'HuggingFaceTB/SmolLM2-135M-Instruct',
     'HuggingFaceTB/SmolLM2-360M-Instruct',
     'Qwen/Qwen2.5-0.5B-Instruct'

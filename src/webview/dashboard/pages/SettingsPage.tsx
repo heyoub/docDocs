@@ -19,7 +19,7 @@ const DEFAULT_CONFIG: DocDocsConfig = {
   },
   ml: {
     enabled: false,
-    model: 'HuggingFaceTB/SmolLM2-360M-Instruct',
+    model: 'tiiuae/Falcon-H1-Tiny-Coder-90M',
   },
   codeLens: {
     enabled: true,

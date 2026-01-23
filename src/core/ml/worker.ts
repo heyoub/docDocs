@@ -119,19 +119,39 @@ const state: WorkerState = {
 
 /**
  * List of supported HuggingFace model IDs.
- * Includes both original models and new recommended models.
+ * Synced with MODEL_REGISTRY in registry.ts.
  */
 export const SUPPORTED_MODELS = [
-    // New recommended models
+    // Falcon H1 Tiny Family
     'tiiuae/Falcon-H1-Tiny-Coder-90M',
+    'tiiuae/Falcon-H1-Tiny-90M-Instruct',
+    'tiiuae/Falcon-H1-Tiny-R-90M',
+    'tiiuae/Falcon-H1-Tiny-R-0.6B',
+    'tiiuae/Falcon-H1-Tiny-Tool-Calling',
+    'tiiuae/Falcon-H1-Tiny-Multilingual-100M-Instruct',
+    // Falcon H1 Main Family
+    'tiiuae/Falcon-H1-0.5B-Instruct',
+    'tiiuae/Falcon-H1-1.5B-Instruct',
+    'tiiuae/Falcon-H1-1.5B-Deep-Instruct',
+    'tiiuae/Falcon-H1-3B-Instruct',
+    'tiiuae/Falcon-H1-7B-Instruct',
+    'tiiuae/Falcon-H1R-7B-Instruct',
+    // Embedding models
+    'Qwen/Qwen3-Embedding-0.6B',
+    'nomic-ai/nomic-embed-code-v1',
+    'jinaai/jina-embeddings-v2-base-code',
+    'google/embeddinggemma-300m',
+    // IBM Granite
     'ibm-granite/granite-4.0-nano-350m-instruct',
     'ibm-granite/granite-4.0-nano-1.5b-instruct',
-    // Original models
+    // SmolLM2
     'HuggingFaceTB/SmolLM2-135M-Instruct',
     'HuggingFaceTB/SmolLM2-360M-Instruct',
     'HuggingFaceTB/SmolLM2-1.7B-Instruct',
+    // Qwen
     'Qwen/Qwen2.5-0.5B-Instruct',
     'Qwen/Qwen2.5-1.5B-Instruct',
+    // Microsoft
     'microsoft/Phi-3-mini-4k-instruct',
 ] as const;
 

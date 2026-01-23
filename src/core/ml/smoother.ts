@@ -63,7 +63,7 @@ export interface SmootherState {
 // ============================================================
 
 const DEFAULT_CONFIG: SmootherConfig = {
-    modelId: 'HuggingFaceTB/SmolLM2-135M-Instruct',
+    modelId: 'tiiuae/Falcon-H1-Tiny-Coder-90M',  // Registry recommended model
     device: 'auto',
     maxTokens: 256,
     temperature: 0.7,

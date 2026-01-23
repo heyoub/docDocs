@@ -12,7 +12,7 @@
 /**
  * Model category for filtering
  */
-export type ModelCategory = 'code' | 'general' | 'reasoning';
+export type ModelCategory = 'code' | 'general' | 'reasoning' | 'embedding';
 
 /**
  * Model provider source
@@ -53,6 +53,10 @@ export interface ModelInfo {
  * Models are selected for their balance of quality, size, and performance.
  */
 export const MODEL_REGISTRY: readonly ModelInfo[] = [
+  // ============================================================
+  // Falcon H1 Tiny Family (15 models - the tiny powerhouses)
+  // ============================================================
+
   // Falcon H1 Tiny Coder - Code specialist (RECOMMENDED)
   {
     id: 'tiiuae/Falcon-H1-Tiny-Coder-90M',
@@ -70,6 +74,276 @@ export const MODEL_REGISTRY: readonly ModelInfo[] = [
     },
     downloadUrl: 'https://huggingface.co/onnx-community/Falcon-H1-Tiny-Coder-90M-ONNX',
   },
+
+  // Falcon H1 Tiny Instruct - General purpose chat
+  {
+    id: 'tiiuae/Falcon-H1-Tiny-90M-Instruct',
+    name: 'Falcon H1 Tiny Instruct',
+    provider: 'huggingface',
+    size: '90M',
+    sizeBytes: 180_000_000,
+    description: 'Instruction-tuned tiny Falcon. Fast general-purpose assistant.',
+    category: 'general',
+    requirements: {
+      minRAM: '512MB',
+      supportsWebGPU: true,
+      supportsCPU: true,
+    },
+    downloadUrl: 'https://huggingface.co/tiiuae/Falcon-H1-Tiny-90M-Instruct',
+  },
+
+  // Falcon H1 Tiny Reasoning - 90M reasoning specialist
+  {
+    id: 'tiiuae/Falcon-H1-Tiny-R-90M',
+    name: 'Falcon H1 Tiny Reasoning 90M',
+    provider: 'huggingface',
+    size: '90M',
+    sizeBytes: 180_000_000,
+    description: 'Tiny reasoning model trained on long reasoning traces. Punches above its weight.',
+    category: 'reasoning',
+    requirements: {
+      minRAM: '512MB',
+      supportsWebGPU: true,
+      supportsCPU: true,
+    },
+    downloadUrl: 'https://huggingface.co/tiiuae/Falcon-H1-Tiny-R-90M',
+  },
+
+  // Falcon H1 Tiny Reasoning - 600M reasoning powerhouse
+  {
+    id: 'tiiuae/Falcon-H1-Tiny-R-0.6B',
+    name: 'Falcon H1 Tiny Reasoning 600M',
+    provider: 'huggingface',
+    size: '600M',
+    sizeBytes: 1_200_000_000,
+    description: 'State-of-the-art tiny reasoning model. Outperforms larger models on AIME, Math500.',
+    category: 'reasoning',
+    requirements: {
+      minRAM: '2GB',
+      supportsWebGPU: true,
+      supportsCPU: true,
+    },
+    downloadUrl: 'https://huggingface.co/tiiuae/Falcon-H1-Tiny-R-0.6B',
+  },
+
+  // Falcon H1 Tiny Tool Calling - Function calling specialist
+  {
+    id: 'tiiuae/Falcon-H1-Tiny-Tool-Calling',
+    name: 'Falcon H1 Tiny Tool Calling',
+    provider: 'huggingface',
+    size: '90M',
+    sizeBytes: 180_000_000,
+    description: 'Trained for function calling & tool use. Perfect for agentic workflows.',
+    category: 'code',
+    requirements: {
+      minRAM: '512MB',
+      supportsWebGPU: true,
+      supportsCPU: true,
+    },
+    downloadUrl: 'https://huggingface.co/tiiuae/Falcon-H1-Tiny-Tool-Calling',
+  },
+
+  // Falcon H1 Tiny Multilingual - 100+ languages
+  {
+    id: 'tiiuae/Falcon-H1-Tiny-Multilingual-100M-Instruct',
+    name: 'Falcon H1 Tiny Multilingual',
+    provider: 'huggingface',
+    size: '100M',
+    sizeBytes: 200_000_000,
+    description: 'Multilingual tiny model. Supports 100+ languages for international docs.',
+    category: 'general',
+    requirements: {
+      minRAM: '512MB',
+      supportsWebGPU: true,
+      supportsCPU: true,
+    },
+    downloadUrl: 'https://huggingface.co/tiiuae/Falcon-H1-Tiny-Multilingual-100M-Instruct',
+  },
+
+  // ============================================================
+  // Falcon H1 Main Family (0.5B - 7B, hybrid architecture)
+  // ============================================================
+
+  // Falcon H1 0.5B - Performance rivals 2024's 7B models
+  {
+    id: 'tiiuae/Falcon-H1-0.5B-Instruct',
+    name: 'Falcon H1 0.5B',
+    provider: 'huggingface',
+    size: '0.5B',
+    sizeBytes: 1_000_000_000,
+    description: 'Hybrid Transformer/Mamba. Rivals 2024\'s 7B models. 256K context, 18 languages.',
+    category: 'general',
+    requirements: {
+      minRAM: '2GB',
+      supportsWebGPU: true,
+      supportsCPU: true,
+    },
+    downloadUrl: 'https://huggingface.co/tiiuae/Falcon-H1-0.5B-Instruct',
+  },
+
+  // Falcon H1 1.5B - Sweet spot for edge
+  {
+    id: 'tiiuae/Falcon-H1-1.5B-Instruct',
+    name: 'Falcon H1 1.5B',
+    provider: 'huggingface',
+    size: '1.5B',
+    sizeBytes: 3_000_000_000,
+    description: 'Sweet spot for edge deployment. Hybrid architecture, 256K context.',
+    category: 'general',
+    requirements: {
+      minRAM: '4GB',
+      supportsWebGPU: true,
+      supportsCPU: true,
+    },
+    downloadUrl: 'https://huggingface.co/tiiuae/Falcon-H1-1.5B-Instruct',
+  },
+
+  // Falcon H1 1.5B-Deep - Rivals 7B-10B models
+  {
+    id: 'tiiuae/Falcon-H1-1.5B-Deep-Instruct',
+    name: 'Falcon H1 1.5B Deep',
+    provider: 'huggingface',
+    size: '1.5B',
+    sizeBytes: 3_000_000_000,
+    description: 'Deep variant that rivals 7B-10B models. Maximum performance at small size.',
+    category: 'general',
+    recommended: true,
+    requirements: {
+      minRAM: '4GB',
+      supportsWebGPU: true,
+      supportsCPU: true,
+    },
+    downloadUrl: 'https://huggingface.co/tiiuae/Falcon-H1-1.5B-Deep-Instruct',
+  },
+
+  // Falcon H1 3B
+  {
+    id: 'tiiuae/Falcon-H1-3B-Instruct',
+    name: 'Falcon H1 3B',
+    provider: 'huggingface',
+    size: '3B',
+    sizeBytes: 6_000_000_000,
+    description: 'Mid-size Falcon H1. Good balance of capability and resource usage.',
+    category: 'general',
+    requirements: {
+      minRAM: '8GB',
+      supportsWebGPU: true,
+      supportsCPU: true,
+    },
+    downloadUrl: 'https://huggingface.co/tiiuae/Falcon-H1-3B-Instruct',
+  },
+
+  // Falcon H1 7B
+  {
+    id: 'tiiuae/Falcon-H1-7B-Instruct',
+    name: 'Falcon H1 7B',
+    provider: 'huggingface',
+    size: '7B',
+    sizeBytes: 14_000_000_000,
+    description: 'Full-size Falcon H1. 256K context, 18 languages, hybrid efficiency.',
+    category: 'general',
+    requirements: {
+      minRAM: '16GB',
+      supportsWebGPU: true,
+      supportsCPU: true,
+    },
+    downloadUrl: 'https://huggingface.co/tiiuae/Falcon-H1-7B-Instruct',
+  },
+
+  // Falcon H1R 7B - SOTA Reasoning
+  {
+    id: 'tiiuae/Falcon-H1R-7B',
+    name: 'Falcon H1R 7B Reasoning',
+    provider: 'huggingface',
+    size: '7B',
+    sizeBytes: 14_000_000_000,
+    description: 'SOTA reasoning model. Beats models 2-7x larger. 88.1% AIME24, 256K context.',
+    category: 'reasoning',
+    recommended: true,
+    requirements: {
+      minRAM: '16GB',
+      supportsWebGPU: true,
+      supportsCPU: true,
+    },
+    downloadUrl: 'https://huggingface.co/tiiuae/Falcon-H1R-7B',
+  },
+
+  // ============================================================
+  // Embedding Models (for semantic search & RAG)
+  // ============================================================
+
+  // Qwen3 Embedding - #1 on MTEB-Code (PRIMARY for code)
+  {
+    id: 'Qwen/Qwen3-Embedding-0.6B',
+    name: 'Qwen3 Embedding 0.6B',
+    provider: 'huggingface',
+    size: '0.6B',
+    sizeBytes: 1_200_000_000,
+    description: '#1 on MTEB-Code benchmark. Best for code embeddings. Apache 2.0 license.',
+    category: 'embedding',
+    recommended: true,
+    requirements: {
+      minRAM: '2GB',
+      supportsWebGPU: true,
+      supportsCPU: true,
+    },
+    downloadUrl: 'https://huggingface.co/Qwen/Qwen3-Embedding-0.6B',
+  },
+
+  // Nomic Embed Code - Lightweight code embedder
+  {
+    id: 'nomic-ai/nomic-embed-code',
+    name: 'Nomic Embed Code',
+    provider: 'huggingface',
+    size: '137M',
+    sizeBytes: 275_000_000,
+    description: 'Best lightweight code embedder. Rivals closed-source, ONNX ready.',
+    category: 'embedding',
+    requirements: {
+      minRAM: '512MB',
+      supportsWebGPU: true,
+      supportsCPU: true,
+    },
+    downloadUrl: 'https://huggingface.co/nomic-ai/nomic-embed-code',
+  },
+
+  // Jina Code v2 - 8K context code embeddings
+  {
+    id: 'jinaai/jina-embeddings-v2-base-code',
+    name: 'Jina Code v2',
+    provider: 'huggingface',
+    size: '161M',
+    sizeBytes: 322_000_000,
+    description: '8K context window for code. Excellent for long functions/classes.',
+    category: 'embedding',
+    requirements: {
+      minRAM: '1GB',
+      supportsWebGPU: true,
+      supportsCPU: true,
+    },
+    downloadUrl: 'https://huggingface.co/jinaai/jina-embeddings-v2-base-code',
+  },
+
+  // Google EmbeddingGemma - Best-in-class open embeddings (general)
+  {
+    id: 'google/embeddinggemma-300m',
+    name: 'EmbeddingGemma 300M',
+    provider: 'huggingface',
+    size: '308M',
+    sizeBytes: 616_000_000,
+    description: 'Google\'s best general embedder. 100+ languages, Matryoshka dims, on-device ready.',
+    category: 'embedding',
+    requirements: {
+      minRAM: '1GB',
+      supportsWebGPU: true,
+      supportsCPU: true,
+    },
+    downloadUrl: 'https://huggingface.co/google/embeddinggemma-300m',
+  },
+
+  // ============================================================
+  // IBM Granite (Hybrid Mamba/Transformer)
+  // ============================================================
 
   // IBM Granite 4.0 Nano - Hybrid architecture
   {

@@ -425,7 +425,7 @@ export default function App() {
       },
       ml: {
         enabled: state.enableML,
-        model: 'HuggingFaceTB/SmolLM2-360M-Instruct',
+        model: 'tiiuae/Falcon-H1-Tiny-Coder-90M',
       },
       watch: {
         enabled: state.enableWatch,

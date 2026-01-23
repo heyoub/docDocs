@@ -156,6 +156,7 @@ function SearchAndFilter() {
           <TabsTrigger value="code">Code</TabsTrigger>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="reasoning">Reasoning</TabsTrigger>
+          <TabsTrigger value="embedding">Embed</TabsTrigger>
         </TabsList>
       </Tabs>
     </div>
