@@ -20,7 +20,6 @@ import {
   getHighComplexityFiles,
 } from '../heuristics/complexity.js';
 import {
-  analyzeStaleness,
   analyzeStalenessReport,
   getStaleFiles,
 } from '../heuristics/staleness.js';
@@ -210,7 +209,7 @@ export function registerTools(server: McpServer): void {
         };
 
         if (includeReasons && r.reasons.length > 0) {
-          base.reasons = r.reasons.map(reason => ({
+          base['reasons'] = r.reasons.map(reason => ({
             type: reason.type,
             description: reason.description,
             severity: reason.severity,
@@ -218,7 +217,7 @@ export function registerTools(server: McpServer): void {
         }
 
         if (r.semanticChanges.length > 0) {
-          base.semanticChanges = r.semanticChanges.slice(0, 5);
+          base['semanticChanges'] = r.semanticChanges.slice(0, 5);
         }
 
         return base;
@@ -272,8 +271,9 @@ export function registerTools(server: McpServer): void {
       }
 
       const docIndex = readDocIndex(projectRoot);
+      const documentedFiles = new Set(docIndex.keys());
       const graph = await analyzeImportance(projectRoot, files);
-      const undocumented = getUndocumentedHighPriority(graph, docIndex, limit * 2);
+      const undocumented = getUndocumentedHighPriority(graph, documentedFiles, limit * 2);
 
       // Filter by minimum importance
       const filtered = undocumented
@@ -625,14 +625,14 @@ export function registerTools(server: McpServer): void {
           };
 
           if (direction !== 'dependents' && info.dependencies.length > 0) {
-            node.dependencies = info.dependencies
+            node['dependencies'] = info.dependencies
               .filter(d => !visited.has(d))
               .slice(0, 10)
               .map(d => buildTree(d, currentDepth + 1));
           }
 
           if (direction !== 'dependencies' && info.dependents.length > 0) {
-            node.dependents = info.dependents
+            node['dependents'] = info.dependents
               .filter(d => !visited.has(d))
               .slice(0, 10)
               .map(d => buildTree(d, currentDepth + 1));

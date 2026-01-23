@@ -7,6 +7,15 @@
  * @requirements 5.1, 5.7, 35.1, 35.2, 35.3, 35.4, 35.5, 35.6, 35.7
  */
 
+// Import transformers.js for actual ML inference
+// Note: In Web Worker context, we use dynamic imports
+type Pipeline = (prompt: string, options?: Record<string, unknown>) => Promise<Array<{ generated_text: string }>>;
+type PipelineFactory = (
+    task: string,
+    model: string,
+    options?: { device?: string; progress_callback?: (progress: unknown) => void }
+) => Promise<Pipeline>;
+
 // Web Worker/WebGPU type declarations for Node.js/VS Code environment
 declare const self: {
     onmessage: ((event: { data: unknown }) => void) | null;
@@ -25,7 +34,8 @@ interface GPUAdapter {
     readonly name: string;
 }
 
-// MessageEvent-like interface available for Worker communication
+// Transformers.js pipeline reference
+let pipelineFactory: PipelineFactory | null = null;
 
 // ============================================================
 // Types
@@ -61,6 +71,7 @@ export interface InitPayload {
     readonly modelId: string;
     readonly device: 'cpu' | 'webgpu' | 'auto';
     readonly cacheDir?: string;
+    readonly cachedModelPath?: string;  // Path to locally cached model
 }
 
 /**
@@ -108,8 +119,14 @@ const state: WorkerState = {
 
 /**
  * List of supported HuggingFace model IDs.
+ * Includes both original models and new recommended models.
  */
 export const SUPPORTED_MODELS = [
+    // New recommended models
+    'tiiuae/Falcon-H1-Tiny-Coder-90M',
+    'ibm-granite/granite-4.0-nano-350m-instruct',
+    'ibm-granite/granite-4.0-nano-1.5b-instruct',
+    // Original models
     'HuggingFaceTB/SmolLM2-135M-Instruct',
     'HuggingFaceTB/SmolLM2-360M-Instruct',
     'HuggingFaceTB/SmolLM2-1.7B-Instruct',
@@ -122,9 +139,12 @@ export type SupportedModel = typeof SUPPORTED_MODELS[number];
 
 /**
  * Checks if a model ID is supported.
+ * Also allows models from the registry that may not be in SUPPORTED_MODELS.
  */
-export function isModelSupported(modelId: string): modelId is SupportedModel {
-    return SUPPORTED_MODELS.includes(modelId as SupportedModel);
+export function isModelSupported(modelId: string): boolean {
+    // Allow all models from the registry or supported list
+    return SUPPORTED_MODELS.includes(modelId as SupportedModel) ||
+           modelId.includes('/');  // Allow any HuggingFace model path
 }
 
 // ============================================================
@@ -165,6 +185,22 @@ async function selectDevice(preference: 'cpu' | 'webgpu' | 'auto'): Promise<'cpu
 // ============================================================
 
 /**
+ * Loads the transformers.js library dynamically.
+ */
+async function loadTransformers(): Promise<PipelineFactory> {
+    if (pipelineFactory) return pipelineFactory;
+
+    try {
+        // Dynamic import for transformers.js
+        const transformers = await import('@huggingface/transformers');
+        pipelineFactory = transformers.pipeline as unknown as PipelineFactory;
+        return pipelineFactory;
+    } catch (error) {
+        throw new Error(`Failed to load transformers.js: ${error instanceof Error ? error.message : String(error)}`);
+    }
+}
+
+/**
  * Handles initialization request.
  */
 async function handleInit(
@@ -195,20 +231,44 @@ async function handleInit(
             } satisfies ProgressPayload,
         });
 
-        // In a real implementation, we would load the model here using transformers.js
-        // For now, we simulate the loading process
+        // Load transformers.js
+        const pipeline = await loadTransformers();
+
+        // Progress callback for model download
+        const progressCallback = (progress: unknown) => {
+            const p = progress as { status?: string; progress?: number; file?: string };
+            if (p.status === 'downloading' || p.status === 'progress') {
+                postMessage({
+                    id,
+                    type: 'progress',
+                    payload: {
+                        stage: 'downloading',
+                        progress: Math.round((p.progress ?? 0) * 100),
+                        message: p.file ? `Downloading ${p.file}...` : `Downloading ${payload.modelId}...`,
+                    } satisfies ProgressPayload,
+                });
+            }
+        };
+
+        // Initialize the text generation pipeline
         postMessage({
             id,
             type: 'progress',
             payload: {
                 stage: 'downloading',
-                progress: 50,
-                message: `Downloading ${payload.modelId}...`,
+                progress: 0,
+                message: `Loading ${payload.modelId}...`,
             } satisfies ProgressPayload,
         });
 
-        // Simulate model loading delay
-        await new Promise(resolve => setTimeout(resolve, 100));
+        state.pipeline = await pipeline(
+            'text-generation',
+            payload.modelId,
+            {
+                device: state.device === 'webgpu' ? 'webgpu' : 'cpu',
+                progress_callback: progressCallback,
+            }
+        );
 
         postMessage({
             id,
@@ -250,7 +310,7 @@ async function handleGenerate(
     postMessage: (msg: WorkerResponse) => void
 ): Promise<void> {
     try {
-        if (!state.initialized) {
+        if (!state.initialized || !state.pipeline) {
             postMessage({
                 id,
                 type: 'error',
@@ -269,14 +329,28 @@ async function handleGenerate(
             } satisfies ProgressPayload,
         });
 
-        // In a real implementation, we would run inference here
-        // For now, return a placeholder response
-        const result = `[ML-generated summary for: ${payload.prompt.slice(0, 50)}...]`;
+        // Run actual inference with the loaded pipeline
+        const pipeline = state.pipeline as Pipeline;
+        const outputs = await pipeline(payload.prompt, {
+            max_new_tokens: payload.maxTokens,
+            temperature: payload.temperature ?? 0.7,
+            do_sample: true,
+            top_p: 0.9,
+        });
+
+        // Extract generated text
+        const generated = outputs[0];
+        const result = generated?.generated_text ?? '';
+
+        // Remove the original prompt from the output if present
+        const text = result.startsWith(payload.prompt)
+            ? result.slice(payload.prompt.length).trim()
+            : result.trim();
 
         postMessage({
             id,
             type: 'success',
-            payload: { text: result },
+            payload: { text },
         });
     } catch (e) {
         const message = e instanceof Error ? e.message : String(e);

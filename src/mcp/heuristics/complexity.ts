@@ -118,7 +118,8 @@ function getLanguage(filePath: string): string {
 }
 
 function stripComments(content: string, language: string): string {
-  const patterns = COMMENT_PATTERNS[language] ?? COMMENT_PATTERNS.typescript;
+  const patterns = COMMENT_PATTERNS[language] ?? COMMENT_PATTERNS['typescript'];
+  if (!patterns) return content;
   let stripped = content;
   for (const pattern of patterns) {
     stripped = stripped.replace(pattern, '');
@@ -127,7 +128,8 @@ function stripComments(content: string, language: string): string {
 }
 
 function countCommentLines(content: string, language: string): number {
-  const patterns = COMMENT_PATTERNS[language] ?? COMMENT_PATTERNS.typescript;
+  const patterns = COMMENT_PATTERNS[language] ?? COMMENT_PATTERNS['typescript'];
+  if (!patterns) return 0;
   let count = 0;
   for (const pattern of patterns) {
     const matches = content.match(pattern);

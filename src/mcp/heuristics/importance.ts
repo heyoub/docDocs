@@ -349,6 +349,15 @@ function calculateImportanceScore(
     score += 1;
   }
 
+  // Bonus for files that are dependencies of entry points
+  const isDirectEntryDep = graph.entryPoints.some(ep => {
+    const entryFile = graph.files.get(ep);
+    return entryFile?.dependencies.includes(file.path);
+  });
+  if (isDirectEntryDep) {
+    score += 0.5;
+  }
+
   // Complexity factor (more complex = needs more docs)
   if (file.metrics.cyclomaticComplexity > 20) {
     score += 1.5;

@@ -25,6 +25,16 @@ import {
   watchModeAtom,
   themeAtom,
   generationProgressAtom,
+  // Model atoms
+  modelRegistryAtom,
+  cachedModelsAtom,
+  modelRecommendationsAtom,
+  systemCapabilitiesAtom,
+  selectedModelIdAtom,
+  downloadProgressAtom,
+  cacheSizeAtom,
+  cacheLimitAtom,
+  modelsLoadingAtom,
 } from '../store';
 
 /**
@@ -41,6 +51,16 @@ export function useVSCodeMessaging(): void {
   const setWatchMode = useSetAtom(watchModeAtom);
   const setTheme = useSetAtom(themeAtom);
   const setGenerationProgress = useSetAtom(generationProgressAtom);
+  // Model state setters
+  const setModelRegistry = useSetAtom(modelRegistryAtom);
+  const setCachedModels = useSetAtom(cachedModelsAtom);
+  const setModelRecommendations = useSetAtom(modelRecommendationsAtom);
+  const setSystemCapabilities = useSetAtom(systemCapabilitiesAtom);
+  const setSelectedModelId = useSetAtom(selectedModelIdAtom);
+  const setDownloadProgress = useSetAtom(downloadProgressAtom);
+  const setCacheSize = useSetAtom(cacheSizeAtom);
+  const setCacheLimit = useSetAtom(cacheLimitAtom);
+  const setModelsLoading = useSetAtom(modelsLoadingAtom);
 
   useEffect(() => {
     const handleMessage = (message: ToWebview) => {
@@ -55,6 +75,18 @@ export function useVSCodeMessaging(): void {
           setWatchMode(message.payload.watchMode);
           setTheme(message.payload.theme.kind);
           setConfigLoading(false);
+          // Handle model state from initial data
+          if (message.payload.models) {
+            setModelRegistry(message.payload.models.registry);
+            setCachedModels(message.payload.models.cached);
+            setModelRecommendations(message.payload.models.recommendations);
+            setSystemCapabilities(message.payload.models.system);
+            setSelectedModelId(message.payload.models.selectedModelId);
+            setDownloadProgress(message.payload.models.downloads);
+            setCacheSize(message.payload.models.cacheSize);
+            setCacheLimit(message.payload.models.cacheLimit);
+            setModelsLoading(false);
+          }
           break;
         case 'config:update':
           setConfig(message.payload);
@@ -86,6 +118,76 @@ export function useVSCodeMessaging(): void {
         case 'generation:complete':
           setGenerationProgress(null);
           break;
+        // Model management messages
+        case 'models:registry':
+          setModelRegistry(message.payload);
+          break;
+        case 'models:cache':
+          setCachedModels(message.payload);
+          break;
+        case 'models:recommendations':
+          setModelRecommendations(message.payload);
+          break;
+        case 'models:system':
+          setSystemCapabilities(message.payload);
+          break;
+        case 'models:state':
+          setModelRegistry(message.payload.registry);
+          setCachedModels(message.payload.cached);
+          setModelRecommendations(message.payload.recommendations);
+          setSystemCapabilities(message.payload.system);
+          setSelectedModelId(message.payload.selectedModelId);
+          setDownloadProgress(message.payload.downloads);
+          setCacheSize(message.payload.cacheSize);
+          setCacheLimit(message.payload.cacheLimit);
+          setModelsLoading(false);
+          break;
+        case 'model:download:start':
+          setDownloadProgress((prev) => ({
+            ...prev,
+            [message.payload.modelId]: {
+              modelId: message.payload.modelId,
+              percent: 0,
+              downloadedBytes: 0,
+              totalBytes: 0,
+              speed: '',
+              eta: 'Starting...',
+              status: 'downloading',
+            },
+          }));
+          break;
+        case 'model:download:progress':
+          setDownloadProgress((prev) => ({
+            ...prev,
+            [message.payload.modelId]: message.payload,
+          }));
+          break;
+        case 'model:download:complete':
+          setDownloadProgress((prev) => {
+            const { [message.payload.modelId]: _, ...rest } = prev;
+            return rest;
+          });
+          // Refresh cache list
+          postMessage({ type: 'models:requestState' });
+          break;
+        case 'model:download:error':
+          setDownloadProgress((prev) => ({
+            ...prev,
+            [message.payload.modelId]: {
+              modelId: message.payload.modelId,
+              percent: 0,
+              downloadedBytes: 0,
+              totalBytes: 0,
+              speed: '',
+              eta: '',
+              status: 'error',
+              error: message.payload.error,
+            },
+          }));
+          break;
+        case 'model:selected':
+          setSelectedModelId(message.payload.modelId);
+          break;
       }
     };
 
@@ -109,6 +211,15 @@ export function useVSCodeMessaging(): void {
     setWatchMode,
     setTheme,
     setGenerationProgress,
+    setModelRegistry,
+    setCachedModels,
+    setModelRecommendations,
+    setSystemCapabilities,
+    setSelectedModelId,
+    setDownloadProgress,
+    setCacheSize,
+    setCacheLimit,
+    setModelsLoading,
   ]);
 }
 

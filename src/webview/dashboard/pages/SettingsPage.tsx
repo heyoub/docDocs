@@ -8,6 +8,7 @@ import { Switch } from '../../shared/components/atoms/Switch';
 import { Skeleton } from '../../shared/components/atoms/Skeleton';
 import { Checkbox } from '../../shared/components/atoms/Checkbox';
 import { ConfigSection } from '../../shared/components/organisms/ConfigSection';
+import { ModelManager } from '../../shared/components/organisms/ModelManager';
 import { FormField } from '../../shared/components/molecules/FormField';
 import type { DocDocsConfig } from '../../../protocol';
 
@@ -155,60 +156,36 @@ function MLSettings() {
   const config = useAtomValue(configAtom);
   const saveConfig = useSaveConfig();
   const [enabled, setEnabled] = useState(config?.ml.enabled ?? false);
-  const [model, setModel] = useState(config?.ml.model ?? '');
 
   useEffect(() => {
     if (config) {
       setEnabled(config.ml.enabled);
-      setModel(config.ml.model);
     }
   }, [config]);
 
-  const handleSave = () => {
+  const handleToggle = (checked: boolean) => {
+    setEnabled(checked);
     saveConfig({
-      ml: { enabled, model },
+      ml: { enabled: checked, model: config?.ml.model ?? '' },
     });
-  };
-
-  const handleReset = () => {
-    setEnabled(DEFAULT_CONFIG.ml.enabled);
-    setModel(DEFAULT_CONFIG.ml.model);
   };
 
   return (
     <ConfigSection
       title="ML-Powered Generation"
       description="Use machine learning for enhanced prose generation"
-      defaultOpen={false}
+      defaultOpen={true}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <p className="text-sm font-medium">Enable ML Generation</p>
           <p className="text-xs text-muted-foreground">
-            Uses HuggingFace models for better documentation prose
+            Uses local models for better documentation prose
           </p>
         </div>
-        <Switch checked={enabled} onCheckedChange={setEnabled} />
+        <Switch checked={enabled} onCheckedChange={handleToggle} />
       </div>
-      {enabled && (
-        <FormField
-          label="Model ID"
-          description="HuggingFace model identifier"
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
-          placeholder="HuggingFaceTB/SmolLM2-360M-Instruct"
-        />
-      )}
-      <div className="flex justify-between pt-2">
-        <Button variant="ghost" onClick={handleReset}>
-          <RotateCcw className="h-4 w-4 mr-2" />
-          Reset
-        </Button>
-        <Button onClick={handleSave}>
-          <Save className="h-4 w-4 mr-2" />
-          Save ML Settings
-        </Button>
-      </div>
+      {enabled && <ModelManager />}
     </ConfigSection>
   );
 }

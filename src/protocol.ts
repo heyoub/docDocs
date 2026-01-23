@@ -135,6 +135,79 @@ export interface ChangelogEntry {
 }
 
 // ============================================================================
+// Model Management Types
+// ============================================================================
+
+export type ModelCategory = 'code' | 'general' | 'reasoning';
+export type ModelProvider = 'huggingface' | 'local';
+
+export interface ModelRequirements {
+  minRAM: string;
+  supportsWebGPU: boolean;
+  supportsCPU: boolean;
+}
+
+export interface ModelInfo {
+  id: string;
+  name: string;
+  provider: ModelProvider;
+  size: string;
+  sizeBytes: number;
+  description: string;
+  category: ModelCategory;
+  recommended?: boolean;
+  requirements: ModelRequirements;
+  downloadUrl: string;
+}
+
+export interface CachedModelInfo {
+  modelId: string;
+  path: string;
+  sizeBytes: number;
+  downloadedAt: number;
+  lastUsedAt: number;
+}
+
+export interface ModelRecommendation {
+  modelId: string;
+  score: number;
+  reason: string;
+  warnings?: string[];
+}
+
+export interface SystemCapabilities {
+  totalRAM: number;
+  availableRAM: number;
+  hasWebGPU: boolean;
+  gpuName?: string | undefined;
+  gpuVRAM?: number | undefined;
+  platform: 'win32' | 'darwin' | 'linux';
+  isWSL: boolean;
+}
+
+export interface DownloadProgress {
+  modelId: string;
+  percent: number;
+  downloadedBytes: number;
+  totalBytes: number;
+  speed: string;
+  eta: string;
+  status: 'downloading' | 'extracting' | 'complete' | 'error' | 'cancelled';
+  error?: string;
+}
+
+export interface ModelManagerState {
+  registry: ModelInfo[];
+  cached: CachedModelInfo[];
+  recommendations: ModelRecommendation[];
+  system: SystemCapabilities | null;
+  selectedModelId: string | null;
+  downloads: Record<string, DownloadProgress>;
+  cacheSize: number;
+  cacheLimit: number;
+}
+
+// ============================================================================
 // Extension → Webview Messages
 // ============================================================================
 
@@ -149,7 +222,18 @@ export type ToWebview =
   | { type: 'snapshots:update'; payload: Snapshot[] }
   | { type: 'watchMode:update'; payload: { enabled: boolean; files: string[] } }
   | { type: 'theme:update'; payload: { kind: 'light' | 'dark' | 'high-contrast' } }
-  | { type: 'initialData'; payload: InitialData };
+  | { type: 'initialData'; payload: InitialData }
+  // Model management messages
+  | { type: 'models:registry'; payload: ModelInfo[] }
+  | { type: 'models:cache'; payload: CachedModelInfo[] }
+  | { type: 'models:recommendations'; payload: ModelRecommendation[] }
+  | { type: 'models:system'; payload: SystemCapabilities }
+  | { type: 'models:state'; payload: ModelManagerState }
+  | { type: 'model:download:start'; payload: { modelId: string } }
+  | { type: 'model:download:progress'; payload: DownloadProgress }
+  | { type: 'model:download:complete'; payload: { modelId: string; path: string } }
+  | { type: 'model:download:error'; payload: { modelId: string; error: string } }
+  | { type: 'model:selected'; payload: { modelId: string | null } };
 
 // ============================================================================
 // Webview → Extension Messages
@@ -164,7 +248,14 @@ export type ToExtension =
   | { type: 'snapshot:create'; payload: { name: string } }
   | { type: 'snapshot:compare'; payload: { fromId: string; toId: string } }
   | { type: 'generation:start'; payload: { paths: string[]; force?: boolean } }
-  | { type: 'generation:cancel' };
+  | { type: 'generation:cancel' }
+  // Model management messages
+  | { type: 'models:requestState' }
+  | { type: 'models:reportWebGPU'; payload: { hasWebGPU: boolean; gpuName?: string; gpuVRAM?: number } }
+  | { type: 'model:download'; payload: { modelId: string } }
+  | { type: 'model:download:cancel'; payload: { modelId: string } }
+  | { type: 'model:delete'; payload: { modelId: string } }
+  | { type: 'model:select'; payload: { modelId: string } };
 
 // ============================================================================
 // Initial Data Bundle
@@ -179,4 +270,5 @@ export interface InitialData {
   snapshots: Snapshot[];
   watchMode: { enabled: boolean; files: string[] };
   theme: { kind: 'light' | 'dark' | 'high-contrast' };
+  models: ModelManagerState;
 }

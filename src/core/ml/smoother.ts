@@ -39,6 +39,7 @@ export interface SmootherConfig {
     readonly modelId: string;
     readonly device: 'cpu' | 'webgpu' | 'auto';
     readonly cacheDir?: string;
+    readonly cachedModelPath?: string;  // Path to locally cached model
     readonly maxTokens: number;
     readonly temperature: number;
 }
@@ -112,9 +113,10 @@ export class MLProseSmoother {
 
             // Send init message
             const payload: InitPayload = {
-                modelId: this.config.modelId as InitPayload['modelId'],
+                modelId: this.config.modelId,
                 device: this.config.device,
                 ...(this.config.cacheDir !== undefined && { cacheDir: this.config.cacheDir }),
+                ...(this.config.cachedModelPath !== undefined && { cachedModelPath: this.config.cachedModelPath }),
             };
 
             const result = await this.sendRequest<{ modelId: string; device: 'cpu' | 'webgpu' }>('init', payload);

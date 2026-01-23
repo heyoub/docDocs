@@ -179,6 +179,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       snapshots: this.snapshots,
       watchMode: this.watchMode,
       theme: { kind: theme },
+      models: {
+        registry: [],
+        cached: [],
+        recommendations: [],
+        system: null,
+        selectedModelId: null,
+        downloads: {},
+        cacheSize: 0,
+        cacheLimit: 5 * 1024 * 1024 * 1024,
+      },
     };
 
     this.postMessage({ type: 'initialData', payload: initialData });
@@ -252,6 +262,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
    * Generates the HTML content for the webview.
    */
   private getHtml(webview: vscode.Webview): string {
+    const nonce = getNonce();
     const scriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'sidebar', 'sidebar.js')
     );
@@ -259,19 +270,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'assets', 'style.css')
     );
 
-    // CSP must allow webview source for ES modules
+    // CSP with nonce for secure script loading
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'unsafe-inline';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
     <link href="${styleUri}" rel="stylesheet">
     <title>DocDocs</title>
 </head>
 <body>
     <div id="root"></div>
-    <script type="module" src="${scriptUri}"></script>
+    <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
   }

@@ -289,9 +289,10 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",
-        "lint": "bun run lint:extension && bun run lint:webview",
+        "lint": "bun run lint:extension && bun run lint:webview && bun run lint:mcp",
         "lint:extension": "tsc --noEmit",
         "lint:webview": "tsc --noEmit -p src/webview/tsconfig.json",
+        "lint:mcp": "tsc --noEmit -p src/mcp/tsconfig.json",
         "package": "vsce package"
     },
     "dependencies": {

@@ -19,8 +19,8 @@ export interface StalenessReport {
   status: 'fresh' | 'stale' | 'very-stale' | 'orphaned' | 'undocumented';
   score: number;            // 0-10 staleness score (higher = more stale)
   reasons: StalenessReason[];
-  lastDocUpdate?: Date;
-  lastCodeChange?: Date;
+  lastDocUpdate?: Date | undefined;
+  lastCodeChange?: Date | undefined;
   changesSinceDoc: number;  // Number of commits since last doc update
   semanticChanges: SemanticChange[];
 }
@@ -251,8 +251,8 @@ function computeSemanticDiff(
 // ============================================================
 
 function getGitInfo(filePath: string, projectRoot: string): {
-  lastModified?: Date;
-  commitsSince?: number;
+  lastModified?: Date | undefined;
+  commitsSince?: number | undefined;
   authors: string[];
 } {
   try {

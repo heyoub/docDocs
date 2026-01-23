@@ -41,6 +41,7 @@
         "node_modules",
         "dist",
         "test/**/*.test.ts",
-        "src/webview/**/*"
+        "src/webview/**/*",
+        "src/mcp/**/*"
     ]
 }

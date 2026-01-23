@@ -17,7 +17,16 @@ import type {
   RecentDoc,
   Snapshot,
   GenerationProgress,
+  ModelManagerState,
+  ModelInfo,
+  CachedModelInfo,
+  ModelRecommendation,
+  SystemCapabilities,
 } from '../protocol.js';
+import { MODEL_REGISTRY } from '../core/ml/registry.js';
+import { detectSystem, recommendModels, suggestCacheLimit, mergeWebGPUCapabilities } from '../core/ml/systemDetector.js';
+import { ModelCacheManager, createCacheManager } from '../core/ml/cacheManager.js';
+import { ModelDownloadManager, createDownloadManager } from '../core/ml/downloadManager.js';
 
 // ============================================================
 // Constants
@@ -36,6 +45,7 @@ const VIEW_TYPE = 'docdocs.dashboard';
 export class DashboardProvider {
   private panel: vscode.WebviewPanel | undefined;
   private extensionUri: vscode.Uri;
+  private context: vscode.ExtensionContext | null = null;
 
   // State that can be updated and pushed to webview
   private config: DocDocsConfig | null = null;
@@ -46,8 +56,42 @@ export class DashboardProvider {
   private snapshots: Snapshot[] = [];
   private watchMode = { enabled: false, files: [] as string[] };
 
+  // Model management state
+  private cacheManager: ModelCacheManager | null = null;
+  private downloadManager: ModelDownloadManager | null = null;
+  private systemCapabilities: SystemCapabilities | null = null;
+  private selectedModelId: string | null = null;
+
   constructor(extensionUri: vscode.Uri) {
     this.extensionUri = extensionUri;
+  }
+
+  /**
+   * Sets the extension context for model cache management.
+   */
+  setContext(context: vscode.ExtensionContext): void {
+    this.context = context;
+    // Initialize model managers
+    void this.initializeModelManagers();
+  }
+
+  /**
+   * Initializes the model cache and download managers.
+   */
+  private async initializeModelManagers(): Promise<void> {
+    if (!this.context) return;
+
+    try {
+      this.cacheManager = await createCacheManager(this.context);
+      this.downloadManager = createDownloadManager(this.cacheManager);
+      this.systemCapabilities = await detectSystem();
+
+      // Load selected model from settings
+      const config = vscode.workspace.getConfiguration('docdocs');
+      this.selectedModelId = config.get('ml.model', null);
+    } catch (error) {
+      console.error('Failed to initialize model managers:', error);
+    }
   }
 
   /**
@@ -188,7 +232,7 @@ export class DashboardProvider {
     switch (message.type) {
       case 'ready':
       case 'request:initialData':
-        this.sendInitialData();
+        await this.sendInitialData();
         break;
 
       case 'command:run':
@@ -232,13 +276,162 @@ export class DashboardProvider {
       case 'generation:cancel':
         await vscode.commands.executeCommand('docdocs.cancelGeneration');
         break;
+
+      // Model management messages
+      case 'models:requestState':
+        await this.sendModelState();
+        break;
+
+      case 'models:reportWebGPU':
+        if (this.systemCapabilities) {
+          this.systemCapabilities = mergeWebGPUCapabilities(
+            this.systemCapabilities,
+            message.payload
+          );
+          await this.sendModelState();
+        }
+        break;
+
+      case 'model:download':
+        await this.handleModelDownload(message.payload.modelId);
+        break;
+
+      case 'model:download:cancel':
+        this.downloadManager?.cancel(message.payload.modelId);
+        break;
+
+      case 'model:delete':
+        await this.handleModelDelete(message.payload.modelId);
+        break;
+
+      case 'model:select':
+        await this.handleModelSelect(message.payload.modelId);
+        break;
     }
+  }
+
+  /**
+   * Handles model download request.
+   */
+  private async handleModelDownload(modelId: string): Promise<void> {
+    if (!this.downloadManager || !this.cacheManager) {
+      this.postMessage({
+        type: 'model:download:error',
+        payload: { modelId, error: 'Model manager not initialized' },
+      });
+      return;
+    }
+
+    // Notify download starting
+    this.postMessage({
+      type: 'model:download:start',
+      payload: { modelId },
+    });
+
+    try {
+      const path = await this.downloadManager.download(modelId, (progress) => {
+        this.postMessage({
+          type: 'model:download:progress',
+          payload: progress,
+        });
+      });
+
+      this.postMessage({
+        type: 'model:download:complete',
+        payload: { modelId, path },
+      });
+
+      // Refresh state
+      await this.sendModelState();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Download failed';
+      this.postMessage({
+        type: 'model:download:error',
+        payload: { modelId, error: errorMessage },
+      });
+    }
+  }
+
+  /**
+   * Handles model deletion request.
+   */
+  private async handleModelDelete(modelId: string): Promise<void> {
+    if (!this.cacheManager) return;
+
+    try {
+      await this.cacheManager.delete(modelId);
+
+      // If the deleted model was selected, clear selection
+      if (this.selectedModelId === modelId) {
+        this.selectedModelId = null;
+        const config = vscode.workspace.getConfiguration('docdocs');
+        await config.update('ml.model', '', vscode.ConfigurationTarget.Workspace);
+      }
+
+      await this.sendModelState();
+    } catch (error) {
+      console.error('Failed to delete model:', error);
+    }
+  }
+
+  /**
+   * Handles model selection.
+   */
+  private async handleModelSelect(modelId: string): Promise<void> {
+    this.selectedModelId = modelId;
+
+    // Save to settings
+    const config = vscode.workspace.getConfiguration('docdocs');
+    await config.update('ml.model', modelId, vscode.ConfigurationTarget.Workspace);
+    await config.update('ml.enabled', true, vscode.ConfigurationTarget.Workspace);
+
+    this.postMessage({
+      type: 'model:selected',
+      payload: { modelId },
+    });
+
+    // Refresh config
+    this.config = this.getDefaultConfig();
+    this.postMessage({ type: 'config:update', payload: this.config });
+  }
+
+  /**
+   * Gets the current model manager state.
+   */
+  private async getModelState(): Promise<ModelManagerState> {
+    const cached = this.cacheManager ? await this.cacheManager.listCached() : [];
+    const cacheStats = this.cacheManager ? await this.cacheManager.getCacheStats() : { totalSizeBytes: 0 };
+    const recommendations = this.systemCapabilities
+      ? recommendModels(MODEL_REGISTRY, this.systemCapabilities)
+      : [];
+    const cacheLimit = this.systemCapabilities
+      ? suggestCacheLimit(this.systemCapabilities)
+      : 5 * 1024 * 1024 * 1024;
+
+    return {
+      registry: [...MODEL_REGISTRY] as ModelInfo[],
+      cached: cached as CachedModelInfo[],
+      recommendations: recommendations as ModelRecommendation[],
+      system: this.systemCapabilities,
+      selectedModelId: this.selectedModelId,
+      downloads: {},
+      cacheSize: cacheStats.totalSizeBytes,
+      cacheLimit,
+    };
+  }
+
+  /**
+   * Sends model state to the webview.
+   */
+  private async sendModelState(): Promise<void> {
+    const state = await this.getModelState();
+    this.postMessage({ type: 'models:state', payload: state });
   }
 
   /**
    * Sends initial data bundle to the webview.
    */
-  private sendInitialData(): void {
+  private async sendInitialData(): Promise<void> {
     const themeKind = vscode.window.activeColorTheme.kind;
     const theme =
       themeKind === vscode.ColorThemeKind.Light
@@ -247,6 +440,8 @@ export class DashboardProvider {
             themeKind === vscode.ColorThemeKind.HighContrastLight
           ? 'high-contrast'
           : 'dark';
+
+    const modelState = await this.getModelState();
 
     const initialData: InitialData = {
       config: this.config ?? this.getDefaultConfig(),
@@ -257,6 +452,7 @@ export class DashboardProvider {
       snapshots: this.snapshots,
       watchMode: this.watchMode,
       theme: { kind: theme },
+      models: modelState,
     };
 
     this.postMessage({ type: 'initialData', payload: initialData });
@@ -334,6 +530,7 @@ export class DashboardProvider {
    * Generates the HTML content for the webview.
    */
   private getHtml(webview: vscode.Webview): string {
+    const nonce = getNonce();
     const scriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'dashboard', 'dashboard.js')
     );
@@ -341,19 +538,19 @@ export class DashboardProvider {
       vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'assets', 'style.css')
     );
 
-    // CSP must allow webview source for ES modules
+    // CSP with nonce for secure script loading
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'unsafe-inline';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
     <link href="${styleUri}" rel="stylesheet">
     <title>DocDocs Dashboard</title>
 </head>
 <body>
     <div id="root"></div>
-    <script type="module" src="${scriptUri}"></script>
+    <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
   }
@@ -462,6 +659,7 @@ export class OnboardingProvider {
    * Generates the HTML content for the webview.
    */
   private getHtml(webview: vscode.Webview): string {
+    const nonce = getNonce();
     const scriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'onboarding', 'onboarding.js')
     );
@@ -469,19 +667,19 @@ export class OnboardingProvider {
       vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'assets', 'style.css')
     );
 
-    // CSP must allow webview source for ES modules
+    // CSP with nonce for secure script loading
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'unsafe-inline';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
     <link href="${styleUri}" rel="stylesheet">
     <title>DocDocs Setup Wizard</title>
 </head>
 <body>
     <div id="root"></div>
-    <script type="module" src="${scriptUri}"></script>
+    <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
   }
@@ -514,6 +712,7 @@ export function registerDashboardProvider(
   context: vscode.ExtensionContext
 ): DashboardProvider {
   const provider = new DashboardProvider(context.extensionUri);
+  provider.setContext(context);
 
   // Register the open dashboard command
   context.subscriptions.push(

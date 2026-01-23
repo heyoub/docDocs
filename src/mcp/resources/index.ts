@@ -146,7 +146,7 @@ export function registerResources(server: McpServer): void {
       const projectRoot = getProjectRoot();
       const files = await findSourceFiles(projectRoot);
       const docIndex = readDocIndex(projectRoot);
-      const indexFiles = docIndex.files as Record<string, unknown> || {};
+      const indexFiles = (docIndex['files'] as Record<string, unknown>) ?? {};
 
       // Calculate coverage
       let totalSymbols = 0;
