@@ -78,6 +78,29 @@ else
 fi
 echo "=========================================="
 
+# WSL: Also install to Windows IDEs
+if [[ -n "$WSL_DISTRO_NAME" ]]; then
+    echo ""
+    echo "Detected WSL - also installing to Windows IDEs..."
+
+    # Get Windows username
+    WIN_USER=$(cmd.exe /c "echo %USERNAME%" 2>/dev/null | tr -d '\r\n')
+    WIN_HOME="/mnt/c/Users/$WIN_USER"
+
+    if [[ -d "$WIN_HOME" ]]; then
+        # Try Windows IDE CLIs via cmd.exe
+        for ide_cmd in "cursor" "code" "windsurf"; do
+            echo -n "Installing to Windows $ide_cmd... "
+            if cmd.exe /c "$ide_cmd --install-extension $(wslpath -w "$VSIX_FILE") --force" &> /dev/null; then
+                echo -e "${GREEN}Done${NC}"
+                ((installed_count++))
+            else
+                echo -e "${YELLOW}Not found or failed${NC}"
+            fi
+        done
+    fi
+fi
+
 # Convenience: create symlink in ~/bin if it exists
 if [[ -d "$HOME/bin" ]] && [[ ! -L "$HOME/bin/docdocs-install" ]]; then
     ln -sf "$SCRIPT_DIR/install.sh" "$HOME/bin/docdocs-install"
