@@ -353,12 +353,19 @@ fileWatcher.onDidChange(() => {
 function debounce<T extends (...args: unknown[]) => void>(
     fn: T,
     delay: number
-): (...args: Parameters<T>) => void {
+): ((...args: Parameters<T>) => void) & { cancel: () => void } {
     let timeoutId: NodeJS.Timeout | undefined;
-    return (...args: Parameters<T>) => {
-        if (timeoutId) clearTimeout(timeoutId);
+
+    const debounced = (...args: Parameters<T>) => {
+        clearTimeout(timeoutId);
         timeoutId = setTimeout(() => fn(...args), delay);
     };
+
+    debounced.cancel = () => {
+        clearTimeout(timeoutId);
+    };
+
+    return debounced;
 }
 
 const debouncedRefresh = debounce(() => {
