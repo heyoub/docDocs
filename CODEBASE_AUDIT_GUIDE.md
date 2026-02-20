@@ -221,14 +221,15 @@ try {
     await fs.access(entry.path);
     return true;
 } catch (error) {
-    if (error instanceof Error && 'code' in error) {
-        if (error.code === 'ENOENT') {
-            // Expected: file doesn't exist
-            return false;
-        }
-        // Unexpected: permission error, etc
-        console.error(`Cache verification failed for ${modelId}:`, error);
+    // Node.js filesystem errors have a 'code' property.
+    // We check if the error is the expected "file not found" case.
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+        // Expected: file doesn't exist, so it's not in the cache.
+        return false;
     }
+    
+    // For any other error (e.g., permissions), it's unexpected and should be logged.
+    console.error(`Unexpected error during cache verification for ${modelId}:`, error);
     return false;
 }
 ```
