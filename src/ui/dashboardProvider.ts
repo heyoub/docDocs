@@ -47,6 +47,11 @@ export class DashboardProvider {
   private extensionUri: vscode.Uri;
   private context: vscode.ExtensionContext | null = null;
 
+  /** Disposable for theme listener; must be disposed when panel closes to avoid leak */
+  private themeDisposable: vscode.Disposable | undefined;
+  /** Resolves when model managers have finished initializing (or failed) */
+  private initPromise: Promise<void> = Promise.resolve();
+
   // State that can be updated and pushed to webview
   private config: DocDocsConfig | null = null;
   private freshness: FreshnessMap = {};
@@ -71,8 +76,7 @@ export class DashboardProvider {
    */
   setContext(context: vscode.ExtensionContext): void {
     this.context = context;
-    // Initialize model managers
-    void this.initializeModelManagers();
+    this.initPromise = this.initializeModelManagers();
   }
 
   /**
@@ -171,9 +175,18 @@ export class DashboardProvider {
   }
 
   /**
+   * Ensures model managers are initialized before use. Call before any manager-dependent operation.
+   */
+  private async ensureManagersInitialized(): Promise<void> {
+    await this.initPromise;
+  }
+
+  /**
    * Disposes the dashboard panel.
    */
   dispose(): void {
+    this.themeDisposable?.dispose();
+    this.themeDisposable = undefined;
     this.panel?.dispose();
     this.panel = undefined;
   }
@@ -205,13 +218,15 @@ export class DashboardProvider {
     panel.webview.html = this.getHtml(panel.webview);
 
     panel.onDidDispose(() => {
+      this.themeDisposable?.dispose();
+      this.themeDisposable = undefined;
       this.panel = undefined;
     });
 
     panel.webview.onDidReceiveMessage(this.handleMessage.bind(this));
 
-    // Listen for theme changes
-    vscode.window.onDidChangeActiveColorTheme((theme) => {
+    // Listen for theme changes; dispose when panel closes to avoid listener leak
+    this.themeDisposable = vscode.window.onDidChangeActiveColorTheme((theme) => {
       const kind =
         theme.kind === vscode.ColorThemeKind.Light
           ? 'light'
@@ -314,6 +329,7 @@ export class DashboardProvider {
    * Handles model download request.
    */
   private async handleModelDownload(modelId: string): Promise<void> {
+    await this.ensureManagersInitialized();
     if (!this.downloadManager || !this.cacheManager) {
       this.postMessage({
         type: 'model:download:error',
@@ -432,6 +448,7 @@ export class DashboardProvider {
    * Sends initial data bundle to the webview.
    */
   private async sendInitialData(): Promise<void> {
+    await this.ensureManagersInitialized();
     const themeKind = vscode.window.activeColorTheme.kind;
     const theme =
       themeKind === vscode.ColorThemeKind.Light

@@ -62,8 +62,8 @@ function readDocIndex(projectRoot: string): Map<string, Date> {
         }
       }
     }
-  } catch {
-    // Index doesn't exist or is invalid
+  } catch (error) {
+    console.error('[docDocs MCP] Failed to read documentation index:', error);
   }
 
   return index;
@@ -287,8 +287,8 @@ export function registerTools(server: McpServer): void {
         try {
           const metrics = await analyzeComplexity(f.path);
           complexity = metrics.overall;
-        } catch {
-          // Skip complexity if analysis fails
+        } catch (error) {
+          console.warn('[docDocs MCP] Complexity analysis failed for', f.path, error);
         }
 
         return {
@@ -520,8 +520,8 @@ export function registerTools(server: McpServer): void {
               importance,
             });
           }
-        } catch {
-          // Skip files that can't be read
+        } catch (error) {
+          console.warn('[docDocs MCP] Skipping file (read failed):', file, error);
         }
       }
 

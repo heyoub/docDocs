@@ -192,14 +192,17 @@ export class GraphPanelManager {
             }
         }
 
-        // Handle node clicks
-        document.addEventListener('click', (e) => {
+        // Handle node clicks (remove previous listener to avoid duplicates when HTML is re-set)
+        if (window.__docDocsGraphClickHandler) {
+            document.removeEventListener('click', window.__docDocsGraphClickHandler);
+        }
+        window.__docDocsGraphClickHandler = (e) => {
             const node = e.target.closest('.node');
             if (node) {
-                const nodeId = node.id;
-                vscode.postMessage({ command: 'nodeClick', node: nodeId });
+                vscode.postMessage({ command: 'nodeClick', node: node.id });
             }
-        });
+        };
+        document.addEventListener('click', window.__docDocsGraphClickHandler);
     </script>
 </body>
 </html>`;

@@ -29,32 +29,45 @@ export const MAX_RETRIES = 1;
 
 /**
  * Creates a timeout promise that rejects after the specified duration.
+ * If signal is provided and aborts first, the timer is cleared to avoid leaks.
  */
-function createTimeout(ms: number): Promise<never> {
+function createTimeout(ms: number, signal?: AbortSignal): Promise<never> {
     return new Promise((_, reject) => {
-        setTimeout(() => reject(new Error(`LSP command timed out after ${ms}ms`)), ms);
+        const timer = setTimeout(() => reject(new Error(`LSP command timed out after ${ms}ms`)), ms);
+        signal?.addEventListener(
+            'abort',
+            () => {
+                clearTimeout(timer);
+                reject(new Error('LSP command cancelled'));
+            },
+            { once: true }
+        );
     });
 }
 
 /**
  * Executes a VS Code command with timeout handling.
+ * Cleans up the timeout when the command completes first to avoid timer leaks.
  */
 export async function executeWithTimeout<T>(
     command: string,
     args: readonly unknown[],
     timeoutMs: number
 ): Promise<T | null> {
+    const controller = new AbortController();
     try {
         const result = await Promise.race([
             vscode.commands.executeCommand<T>(command, ...args),
-            createTimeout(timeoutMs)
+            createTimeout(timeoutMs, controller.signal),
         ]);
         return result ?? null;
     } catch (error) {
-        if (error instanceof Error && error.message.includes('timed out')) {
+        if (error instanceof Error && (error.message.includes('timed out') || error.message.includes('cancelled'))) {
             throw error;
         }
         return null;
+    } finally {
+        controller.abort();
     }
 }
 

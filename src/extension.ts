@@ -174,6 +174,39 @@ function registerUtilityCommands(
 }
 
 // ============================================================
+// Debounce utility
+// ============================================================
+
+/**
+ * Debounces a function so it is invoked at most once per delay after repeated calls.
+ *
+ * @param fn - Function to debounce
+ * @param delayMs - Delay in milliseconds
+ * @returns Debounced function with cancel() to clear pending invocation
+ */
+function debounce<T extends (...args: unknown[]) => void>(
+    fn: T,
+    delayMs: number
+): ((...args: Parameters<T>) => void) & { cancel: () => void } {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    const debounced = (...args: Parameters<T>) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn(...args), delayMs);
+    };
+
+    debounced.cancel = () => {
+        clearTimeout(timeoutId);
+        timeoutId = undefined;
+    };
+
+    return debounced;
+}
+
+/** Debounce delay for file watcher callbacks (ms) */
+const FILE_WATCHER_DEBOUNCE_MS = 300;
+
+// ============================================================
 // File Watchers
 // ============================================================
 
@@ -201,23 +234,16 @@ function setupFileWatchers(
         updateFreshnessStatus(statusBar);
     });
 
-    // Watch for file changes in workspace
+    // Watch for file changes in workspace (debounced to avoid refresh storm)
     const fileWatcher = vscode.workspace.createFileSystemWatcher('**/*.{ts,js,py,rs,go,hs}');
-
-    fileWatcher.onDidChange(() => {
+    const debouncedRefresh = debounce(() => {
         docExplorer.refresh();
         updateFreshnessStatus(statusBar);
-    });
+    }, FILE_WATCHER_DEBOUNCE_MS);
 
-    fileWatcher.onDidCreate(() => {
-        docExplorer.refresh();
-        updateFreshnessStatus(statusBar);
-    });
-
-    fileWatcher.onDidDelete(() => {
-        docExplorer.refresh();
-        updateFreshnessStatus(statusBar);
-    });
+    fileWatcher.onDidChange(debouncedRefresh);
+    fileWatcher.onDidCreate(debouncedRefresh);
+    fileWatcher.onDidDelete(debouncedRefresh);
 
     context.subscriptions.push(saveWatcher, fileWatcher);
 

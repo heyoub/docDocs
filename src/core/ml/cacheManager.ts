@@ -98,10 +98,14 @@ export class ModelCacheManager {
     try {
       await fs.access(entry.path);
       return true;
-    } catch {
-      // Files missing - remove from manifest
-      delete this.manifest!.models[modelId];
-      await this.saveManifest();
+    } catch (error) {
+      const code = error && typeof error === 'object' && 'code' in error ? (error as NodeJS.ErrnoException).code : undefined;
+      if (code === 'ENOENT') {
+        delete this.manifest!.models[modelId];
+        await this.saveManifest();
+        return false;
+      }
+      console.error(`[docDocs] Cache verification failed for ${modelId} at ${entry.path}:`, error);
       return false;
     }
   }
@@ -310,13 +314,18 @@ export class ModelCacheManager {
         this.manifest.version = MANIFEST_VERSION;
         await this.saveManifest();
       }
-    } catch {
-      // Create new manifest
-      this.manifest = {
-        version: MANIFEST_VERSION,
-        models: {},
-      };
-      await this.saveManifest();
+    } catch (error) {
+      const code = error && typeof error === 'object' && 'code' in error ? (error as NodeJS.ErrnoException).code : undefined;
+      if (code === 'ENOENT') {
+        this.manifest = {
+          version: MANIFEST_VERSION,
+          models: {},
+        };
+        await this.saveManifest();
+        return;
+      }
+      console.error('[docDocs] Failed to load cache manifest:', error);
+      this.manifest = { version: MANIFEST_VERSION, models: {} };
     }
   }
 

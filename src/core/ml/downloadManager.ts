@@ -48,6 +48,9 @@ interface ActiveDownload {
 // Constants
 // ============================================================
 
+/** Max progress updates per second to avoid flooding the UI */
+const PROGRESS_THROTTLE_MS = 100;
+
 // ============================================================
 // Download Manager
 // ============================================================
@@ -282,6 +285,15 @@ export class ModelDownloadManager {
         }
 
         const file = createWriteStream(destPath);
+        let lastProgressTime = 0;
+
+        const maybeReportProgress = (): void => {
+          const now = Date.now();
+          if (now - lastProgressTime >= PROGRESS_THROTTLE_MS) {
+            lastProgressTime = now;
+            onProgress({ downloadedBytes });
+          }
+        };
 
         response.on('data', (chunk: Buffer) => {
           if (signal.aborted) {
@@ -291,6 +303,10 @@ export class ModelDownloadManager {
             return;
           }
           downloadedBytes += chunk.length;
+          maybeReportProgress();
+        });
+
+        response.on('end', () => {
           onProgress({ downloadedBytes });
         });
 
@@ -335,8 +351,12 @@ export class ModelDownloadManager {
           size += stat.size;
         }
       }
-    } catch {
-      // Ignore errors
+    } catch (error) {
+      const code = error && typeof error === 'object' && 'code' in error ? (error as NodeJS.ErrnoException).code : undefined;
+      if (code === 'ENOENT') {
+        return 0;
+      }
+      console.error(`[docDocs] getDirectorySize failed for ${dirPath}:`, error);
     }
 
     return size;

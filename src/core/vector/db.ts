@@ -72,7 +72,9 @@ export class VectorDatabase {
         const t = await db.openTable(n);
         const r = await fn(t, { name: n, type: p.type, level: p.level });
         if (r !== null) results.push(r);
-      } catch { /* ignore */ }
+      } catch (error) {
+        console.warn('[docDocs] Vector DB table operation failed:', n, error);
+      }
     }
     return results;
   }
@@ -89,7 +91,12 @@ export class VectorDatabase {
   async dropCollection(t: ContentType, l: HierarchyLevel): Promise<void> {
     const n = this.name(t, l);
     const db = await this.conn();
-    try { await db.dropTable(n); this.tables.delete(n); } catch { /* ignore */ }
+    try {
+      await db.dropTable(n);
+      this.tables.delete(n);
+    } catch (error) {
+      console.warn('[docDocs] Vector DB dropTable failed:', n, error);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -147,7 +154,8 @@ export class VectorDatabase {
         const t = await db.openTable(n);
         await t.add(recs);
         this.tables.set(n, t);
-      } catch {
+      } catch (openError) {
+        console.warn('[docDocs] Vector DB openTable failed, creating table:', n, openError);
         const t = await db.createTable(n, recs);
         this.tables.set(n, t);
       }
@@ -200,7 +208,9 @@ export class VectorDatabase {
           if (score < min) continue;
           all.push(hit(this.toChunk(r), score, { vec: score }));
         }
-      } catch { /* ignore */ }
+      } catch (error) {
+        console.warn('[docDocs] Vector DB search failed for table:', n, error);
+      }
     }
 
     // Note: Hybrid scoring with BM25 is handled by SearchEngine.hybridScore()

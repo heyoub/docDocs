@@ -117,7 +117,9 @@ export class Embedder {
       try {
         const gpu = (navigator as { gpu?: { requestAdapter(): Promise<unknown | null> } }).gpu;
         if (await gpu?.requestAdapter()) return 'webgpu';
-      } catch { /* fall through */ }
+      } catch (error) {
+        console.warn('[docDocs] WebGPU unavailable, using CPU:', error);
+      }
     }
     return 'cpu';
   }
