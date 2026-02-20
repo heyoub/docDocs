@@ -45,67 +45,87 @@ import { restoreIndex as restoreSnapshots } from './state/snapshots.js';
  * @returns A promise that resolves when activation is complete
  */
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-    console.log('GenDocs extension activating...');
+    const outputChannel = vscode.window.createOutputChannel('docDocs');
+    const log = (msg: string) => {
+        const line = `[docDocs] ${msg}`;
+        outputChannel.appendLine(line);
+        console.log(line);
+    };
+    log('activating...');
 
-    // Restore persisted state for each workspace folder
-    const folders = vscode.workspace.workspaceFolders;
-    if (folders && folders.length > 0) {
-        const firstFolder = folders[0];
-        if (firstFolder) {
-            const workspaceUri = firstFolder.uri.toString() as import('./types/index.js').FileURI;
-            await restoreFreshness(workspaceUri);
-            await restoreSnapshots(workspaceUri);
-        }
-    }
-
-    // Register commands
-    registerGenerateCommands(context);
-    registerPreviewCommands(context);
-    registerLintCommands(context);
-    registerExportCommands(context);
-    registerChangelogCommands(context);
-
-    // Register providers
-    const codeLensProvider = registerCodeLensProvider(context);
-    registerCompletionProvider(context);
-    registerWorkspaceSymbolProvider(context);
-    const diagnosticsManager = registerDiagnosticsManager(context);
-
-    // Connect diagnostics manager to lint commands
-    setDiagnosticsManager(diagnosticsManager);
-
-    // Register UI components
-    const docExplorer = registerDocExplorer(context);
-    const statusBar = registerStatusBar(context);
-    registerPreviewPanel(context);
-    registerGraphPanel(context);
-
-    // Register webview providers (React-based UI)
-    registerSidebarProvider(context);
-    registerDashboardProvider(context);
-    registerOnboardingProvider(context);
-
-    // Register additional commands
-    registerUtilityCommands(context, codeLensProvider, docExplorer, statusBar);
-
-    // Set up file watchers for watch mode
-    setupFileWatchers(context, codeLensProvider, docExplorer, statusBar);
-
-    // Persist state on deactivation
-    context.subscriptions.push({
-        dispose: async () => {
-            const folders = vscode.workspace.workspaceFolders;
-            if (folders && folders.length > 0) {
-                const firstFolder = folders[0];
-                if (firstFolder) {
-                    const workspaceUri = firstFolder.uri.toString() as import('./types/index.js').FileURI;
-                    await persistFreshness(workspaceUri);
-                }
+    try {
+        // Restore persisted state for each workspace folder
+        const folders = vscode.workspace.workspaceFolders;
+        if (folders && folders.length > 0) {
+            const firstFolder = folders[0];
+            if (firstFolder) {
+                const workspaceUri = firstFolder.uri.toString() as import('./types/index.js').FileURI;
+                await restoreFreshness(workspaceUri);
+                await restoreSnapshots(workspaceUri);
             }
-        },
-    });
+        } else {
+            log('No workspace folder open — open a folder for full features (File → Open Folder).');
+        }
 
-    console.log('GenDocs extension activated');
+        // Register commands
+        registerGenerateCommands(context);
+        registerPreviewCommands(context);
+        registerLintCommands(context);
+        registerExportCommands(context);
+        registerChangelogCommands(context);
+
+        // Register providers
+        const codeLensProvider = registerCodeLensProvider(context);
+        registerCompletionProvider(context);
+        registerWorkspaceSymbolProvider(context);
+        const diagnosticsManager = registerDiagnosticsManager(context);
+
+        // Connect diagnostics manager to lint commands
+        setDiagnosticsManager(diagnosticsManager);
+
+        // Register UI components
+        const docExplorer = registerDocExplorer(context);
+        const statusBar = registerStatusBar(context);
+        registerPreviewPanel(context);
+        registerGraphPanel(context);
+
+        // Register webview providers (React-based UI)
+        registerSidebarProvider(context);
+        registerDashboardProvider(context);
+        registerOnboardingProvider(context);
+
+        // Register additional commands
+        registerUtilityCommands(context, codeLensProvider, docExplorer, statusBar);
+
+        // Set up file watchers for watch mode
+        setupFileWatchers(context, codeLensProvider, docExplorer, statusBar);
+
+        // Persist state on deactivation
+        context.subscriptions.push({
+            dispose: async () => {
+                const folders = vscode.workspace.workspaceFolders;
+                if (folders && folders.length > 0) {
+                    const firstFolder = folders[0];
+                    if (firstFolder) {
+                        const workspaceUri = firstFolder.uri.toString() as import('./types/index.js').FileURI;
+                        await persistFreshness(workspaceUri);
+                    }
+                }
+            },
+        });
+
+        log('activated');
+    } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        const stack = err instanceof Error ? err.stack : undefined;
+        log(`activation failed: ${message}`);
+        if (stack) outputChannel.appendLine(stack);
+        outputChannel.show();
+        void vscode.window.showErrorMessage(
+            `docDocs failed to activate: ${message}. See Output → docDocs for details.`
+        );
+        throw err;
+    }
 }
 
 /**
