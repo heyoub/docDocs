@@ -421,12 +421,14 @@ const result = await Promise.race([
 **Fix:** Clearable timeout with AbortSignal
 ```typescript
 function createTimeout(ms: number, signal?: AbortSignal): Promise<never> {
-    return new Promise((_, reject) => {
         const timer = setTimeout(() => reject(new TimeoutError()), ms);
+        // The { once: true } option automatically removes the listener after it runs,
+        // preventing a memory leak.
         signal?.addEventListener('abort', () => {
             clearTimeout(timer);
             reject(new AbortError());
-        });
+        }, { once: true });
+    });
     });
 }
 
