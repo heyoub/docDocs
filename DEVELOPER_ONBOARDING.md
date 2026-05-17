@@ -41,7 +41,7 @@ src/
 │   └── vector/           # Vector DB and semantic search
 ├── state/                # State management (Layer 3)
 │   ├── freshness.ts      # Documentation staleness tracking
-│   ├── config.ts         # .gendocs.json loading
+│   ├── config.ts         # .docdocs.json loading
 │   └── snapshots.ts      # API snapshot management
 ├── commands/             # Command handlers (Layer 4)
 │   ├── generate.ts       # Doc generation commands
@@ -266,8 +266,8 @@ bun run lint:mcp
 ### Extension Debugging
 
 1. Press `F5` in VS Code to launch Extension Development Host
-2. Open **Output** panel → "GenDocs" channel for extension logs
-3. Check `console.log('GenDocs extension activating...')` at startup
+2. Open **Output** panel → "docDocs" channel for extension logs
+3. Check `[docDocs] activating...` at startup
 
 ### Webview Debugging
 
@@ -296,8 +296,8 @@ bun run lint:mcp
 
 | Location | What It Shows |
 |----------|---------------|
-| `extension.ts:48` | "GenDocs extension activating..." |
-| `extension.ts:108` | "GenDocs extension activated" |
+| `extension.ts` | "[docDocs] activating..." |
+| `extension.ts` | "[docDocs] activated" |
 | `dashboardProvider.ts:93` | Model manager init errors |
 | `downloadManager.ts` | Download progress and errors |
 
@@ -322,7 +322,7 @@ bun run lint:mcp
 | `package.json` | Extension manifest, commands, settings |
 | `tsconfig.json` | TypeScript config (ES2022, Node16) |
 | `vitest.config.ts` | Test runner config |
-| `.gendocs.json` | Per-project runtime config |
+| `.docdocs.json` | Per-project runtime config |
 
 ### VS Code Integration Points
 

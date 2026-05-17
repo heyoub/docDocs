@@ -210,6 +210,11 @@
                     "default": true,
                     "description": "Show CodeLens actions above symbols"
                 },
+                "docdocs.completion.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Include documentation in completion items"
+                },
                 "docdocs.statusBar.enabled": {
                     "type": "boolean",
                     "default": true,

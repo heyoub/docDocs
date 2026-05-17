@@ -30,13 +30,13 @@ A VS Code extension that provides universal, LSP-powered documentation generatio
 
 ## Configuration
 
-Create a `.docdocs.json` file in your workspace root:
+Create a **`.docdocs.json`** file in your workspace root:
 
 ```json
 {
   "version": 1,
   "output": {
-    "directory": ".gendocs",
+    "directory": ".docdocs",
     "formats": ["markdown", "ai-context"]
   },
   "source": {
@@ -49,6 +49,8 @@ Create a `.docdocs.json` file in your workspace root:
   }
 }
 ```
+
+Generated docs and freshness data go into the `output.directory` folder (default `.docdocs`).
 
 ## Development
 
