@@ -20,6 +20,7 @@ import { formatExtractionError } from '../types/index.js';
 import { buildModuleSchema } from '../core/pipeline/buildModuleSchema.js';
 import { extractSymbols, formatLSPError } from '../core/extractor/lsp.js';
 import { indexSchemaInProviders } from '../core/pipeline/indexGeneratedSchema.js';
+import { enhanceModuleWithMl } from '../core/ml/enhanceSchema.js';
 import { renderModule } from '../core/renderer/markdown.js';
 import { renderAIContext } from '../core/renderer/aiContext.js';
 import {
@@ -370,6 +371,11 @@ async function runSingleFileGeneration(
     }
 
     if (token.isCancellationRequested) return false;
+
+    if (config.ml.enabled) {
+        progress.report({ message: 'Enhancing prose with ML...' });
+        schema = await enhanceModuleWithMl(schema, config.ml);
+    }
 
     progress.report({ message: 'Writing output...' });
     const fileUri = targetUri.toString() as FileURI;
