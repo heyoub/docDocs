@@ -1,0 +1,25 @@
+name: Doc freshness
+
+on:
+  pull_request:
+
+concurrency:
+  group: doc-freshness-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  freshness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Check documentation freshness
+        run: node scripts/check-doc-freshness.mjs

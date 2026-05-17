@@ -94,7 +94,7 @@ bun run test:e2e
 bun run watch
 ```
 
-CI runs `lint:extension`, `test`, and `xvfb-run -a bun run test:e2e` on every pull request (see `.github/workflows/ci.yml`).
+CI runs `lint:extension`, `test`, `test:coverage` (70% line threshold on gated modules), and `xvfb-run -a bun run test:e2e` on every pull request (see `.github/workflows/ci.yml`). Pull requests also run the doc freshness reminder (`.github/workflows/doc-freshness.yml`).
 
 ## Requirements
 
@@ -103,4 +103,4 @@ CI runs `lint:extension`, `test`, and `xvfb-run -a bun run test:e2e` on every pu
 
 ## License
 
-See `package.json` for the current license field.
+MIT — see [package.json](package.json).
