@@ -346,6 +346,8 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",
+        "test:e2e:compile": "esbuild test/e2e/suite/*.ts --bundle --outdir=test/e2e/dist/suite --platform=node --external:vscode --external:mocha --format=cjs",
+        "test:e2e": "bun run build:extension && bun run test:e2e:compile && (command -v xvfb-run >/dev/null 2>&1 && xvfb-run -a node test/e2e/runTest.mjs || node test/e2e/runTest.mjs)",
         "lint": "bun run lint:extension && bun run lint:webview && bun run lint:mcp",
         "lint:extension": "tsc --noEmit",
         "lint:webview": "tsc --noEmit -p src/webview/tsconfig.json",
@@ -387,6 +389,8 @@
     },
     "devDependencies": {
         "@types/vscode": "^1.80.0",
+        "@types/mocha": "^10.0.0",
+        "@types/node": "^20.0.0",
         "@types/d3": "^7.4.0",
         "@types/react": "^18.2.0",
         "@types/react-dom": "^18.2.0",
@@ -400,6 +404,7 @@
         "tailwindcss": "^3.4.0",
         "autoprefixer": "^10.4.0",
         "postcss": "^8.4.0",
-        "concurrently": "^8.2.0"
+        "concurrently": "^8.2.0",
+        "mocha": "^10.0.0"
     }
 }

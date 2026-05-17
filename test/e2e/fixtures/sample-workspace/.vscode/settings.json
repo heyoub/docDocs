@@ -1,0 +1,4 @@
+{
+    "docdocs.watch.enabled": false,
+    "docdocs.extraction.treeSitterFallback": true
+}

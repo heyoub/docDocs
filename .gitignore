@@ -33,5 +33,9 @@ npm-debug.log*
 .cache/
 .gendocs/
 
+# VS Code test runner
+.vscode-test/
+test/e2e/dist/
+
 # ML model cache
 models/
