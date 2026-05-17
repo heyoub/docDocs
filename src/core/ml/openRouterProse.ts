@@ -6,6 +6,7 @@
 
 import type { SymbolSchema } from '../../types/schema.js';
 import { getOpenRouterClient } from './openRouterClient.js';
+import { runWithOpenRouterRateLimit } from './openRouterRateLimit.js';
 import { fetchOpenRouterModelOptions, OPENROUTER_AUTO_MODEL } from './openRouterModels.js';
 import {
     buildSummaryPrompt,
@@ -41,15 +42,17 @@ export async function completeWithOpenRouter(
         return '';
     }
 
-    const result = await client.chat.send({
-        chatRequest: {
-            model: config.model,
-            messages: [{ role: 'user', content: prompt }],
-            maxTokens: config.maxTokens,
-            temperature: config.temperature ?? 0.4,
-            stream: false,
-        },
-    });
+    const result = await runWithOpenRouterRateLimit(() =>
+        client.chat.send({
+            chatRequest: {
+                model: config.model,
+                messages: [{ role: 'user', content: prompt }],
+                maxTokens: config.maxTokens,
+                temperature: config.temperature ?? 0.4,
+                stream: false,
+            },
+        })
+    );
 
     return extractTextContent(result.choices[0]?.message?.content);
 }
