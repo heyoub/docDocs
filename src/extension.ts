@@ -35,9 +35,15 @@ import { contentHash } from './utils/hash.js';
 import type { FileURI } from './types/index.js';
 import type { FreshnessError } from './state/freshness.js';
 import { restoreIndex as restoreSnapshots } from './state/snapshots.js';
-import { resolveWatchConfig } from './state/config.js';
 import { generateForFileFromWatch } from './commands/generate.js';
-import { isWatchExcludedPath, WATCH_FILE_GLOB } from './extension/watchPaths.js';
+import { WATCH_FILE_GLOB } from './extension/watchPaths.js';
+import { createWatchController, type WatchController } from './extension/watchController.js';
+import { registerSchemaCacheWarmer } from './core/pipeline/schemaCacheWarmer.js';
+import {
+    configureTreeSitterWasmDirectory,
+    hasBundledGrammars,
+} from './core/extractor/treeSitterPaths.js';
+import { loadLanguage } from './core/extractor/treeSitter.js';
 
 // Providers (CodeLens diagnostic wiring)
 import { registerCodeLensDiagnostics } from './providers/codeLens.js';
@@ -89,6 +95,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     };
     log('activating...');
 
+    configureTreeSitterWasmDirectory(context.asAbsolutePath('wasm'));
+    if (hasBundledGrammars()) {
+        void loadLanguage('typescript').catch((err: unknown) => {
+            const msg = err instanceof Error ? err.message : String(err);
+            log(`tree-sitter preload skipped: ${msg}`);
+        });
+    } else {
+        log('tree-sitter WASM not bundled — run build:copy-wasm before packaging');
+    }
+
     try {
         // Restore persisted state for each workspace folder
         const folders = vscode.workspace.workspaceFolders;
@@ -135,8 +151,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         registerDashboardProvider(context);
         registerOnboardingProvider(context);
 
+        registerSchemaCacheWarmer(context);
+
         // Register additional commands and watch mode
-        const watchController = createWatchController(statusBar);
+        const watchController = createWatchController(generateForFileFromWatch, statusBar);
         await watchController.syncFromConfig();
         registerUtilityCommands(context, watchController);
         setupFileWatchers(context, codeLensProvider, docExplorer, statusBar, watchController);
@@ -182,99 +200,6 @@ export async function deactivate(): Promise<void> {
         await persistFreshnessWithFeedback(workspaceUri);
     }
     console.log('docDocs extension deactivated');
-}
-
-// ============================================================
-// Watch Mode
-// ============================================================
-
-interface WatchController extends vscode.Disposable {
-    readonly isEnabled: () => boolean;
-    syncFromConfig: () => Promise<void>;
-    toggle: () => Promise<void>;
-    scheduleRegenerate: (uri: vscode.Uri) => void;
-    cancelPending: () => void;
-}
-
-/**
- * Creates watch-mode state backed by VS Code workspace settings and `.docdocs.json`.
- */
-function createWatchController(
-    statusBar: ReturnType<typeof registerStatusBar>
-): WatchController {
-    let enabled = false;
-    const regenerateTimers = new Map<string, ReturnType<typeof setTimeout>>();
-
-    const syncFromConfig = async (): Promise<void> => {
-        const folder = vscode.workspace.workspaceFolders?.[0];
-        if (!folder) {
-            enabled = false;
-            statusBar.setWatching(false);
-            return;
-        }
-        const watch = await resolveWatchConfig(folder);
-        enabled = watch.enabled;
-        statusBar.setWatching(enabled);
-    };
-
-    const cancelPending = (): void => {
-        for (const timer of regenerateTimers.values()) {
-            clearTimeout(timer);
-        }
-        regenerateTimers.clear();
-    };
-
-    const scheduleRegenerate = (uri: vscode.Uri): void => {
-        if (!enabled) return;
-        if (isWatchExcludedPath(uri.fsPath)) return;
-
-        const folder = vscode.workspace.getWorkspaceFolder(uri);
-        if (!folder) return;
-
-        void resolveWatchConfig(folder).then((watch) => {
-            if (!watch.enabled || !watch.autoRegenerate) return;
-
-            const key = uri.toString();
-            const existing = regenerateTimers.get(key);
-            if (existing !== undefined) clearTimeout(existing);
-
-            regenerateTimers.set(
-                key,
-                setTimeout(() => {
-                    regenerateTimers.delete(key);
-                    void generateForFileFromWatch(uri);
-                }, watch.debounceMs)
-            );
-        });
-    };
-
-    const toggle = async (): Promise<void> => {
-        const folder = vscode.workspace.workspaceFolders?.[0];
-        if (!folder) {
-            void vscode.window.showWarningMessage('Open a workspace folder to use watch mode');
-            return;
-        }
-
-        const watch = await resolveWatchConfig(folder);
-        const next = !watch.enabled;
-        const vscodeConfig = vscode.workspace.getConfiguration('docdocs', folder.uri);
-        await vscodeConfig.update('watch.enabled', next, vscode.ConfigurationTarget.Workspace);
-        enabled = next;
-        statusBar.setWatching(next);
-        if (!next) cancelPending();
-        void vscode.window.showInformationMessage(
-            next ? 'Watch mode enabled' : 'Watch mode disabled'
-        );
-    };
-
-    return {
-        isEnabled: () => enabled,
-        syncFromConfig,
-        toggle,
-        scheduleRegenerate,
-        cancelPending,
-        dispose: cancelPending,
-    };
 }
 
 // ============================================================
