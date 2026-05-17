@@ -1,5 +1,5 @@
 /**
- * @fileoverview Export extraction for GenDocs extension.
+ * @fileoverview Export extraction for docDocs extension.
  * This module extracts export information from source files using LSP
  * semantic tokens and document symbols.
  * Layer 3 - imports from types/ (Layer 0) and uses VS Code API.

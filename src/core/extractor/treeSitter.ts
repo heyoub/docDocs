@@ -1,5 +1,5 @@
 /**
- * @fileoverview Tree-sitter based symbol extraction for GenDocs extension.
+ * @fileoverview Tree-sitter based symbol extraction for docDocs extension.
  * This module provides fallback extraction when LSP is unavailable.
  * Uses web-tree-sitter WASM for syntax parsing.
  * Layer 3 - imports from types/ (Layer 0-2).
@@ -145,7 +145,9 @@ function parseIfReady(content: string, languageId: string): Tree | null {
         const parser = parserInstance as { setLanguage(l: Language): void; parse(c: string): Tree };
         parser.setLanguage(language);
         return parser.parse(content);
-    } catch {
+    } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.warn(`[docDocs] tree-sitter parse failed for ${languageId}: ${msg}`);
         return null;
     }
 }

@@ -1,5 +1,5 @@
 /**
- * @fileoverview Extended LSP extraction functions for GenDocs extension.
+ * @fileoverview Extended LSP extraction functions for docDocs extension.
  * This module provides additional LSP extraction capabilities beyond core symbols.
  * Layer 3 - imports from types/ (Layer 0) and uses VS Code API.
  *
@@ -32,18 +32,24 @@ import {
  *
  * @param uri - The URI of the document
  * @param pos - The position of the symbol
- * @returns Promise resolving to type definition location or null
+ * @returns Type definition location, `null` when none exists, or {@link LSPError}
  */
 export async function extractTypeDefinition(
     uri: vscode.Uri,
     pos: Position
 ): AsyncResult<Reference | null, LSPError> {
-    const locations = await executeWithRetry<vscode.Location[]>(
+    const locationsResult = await executeWithRetry<vscode.Location[]>(
         'vscode.executeTypeDefinitionProvider',
-        [uri, toVSCodePosition(pos)]
+        [uri, toVSCodePosition(pos)],
+        undefined,
+        'allow'
     );
 
-    const loc = locations?.[0];
+    if (!locationsResult.ok) {
+        return locationsResult;
+    }
+
+    const loc = locationsResult.value?.[0];
     if (!loc) {
         return { ok: true, value: null };
     }
@@ -60,18 +66,24 @@ export async function extractTypeDefinition(
  *
  * @param uri - The URI of the document
  * @param pos - The position of the symbol
- * @returns Promise resolving to definition location or null
+ * @returns Definition location, `null` when none exists, or {@link LSPError}
  */
 export async function extractDefinition(
     uri: vscode.Uri,
     pos: Position
 ): AsyncResult<Reference | null, LSPError> {
-    const locations = await executeWithRetry<vscode.Location[]>(
+    const locationsResult = await executeWithRetry<vscode.Location[]>(
         'vscode.executeDefinitionProvider',
-        [uri, toVSCodePosition(pos)]
+        [uri, toVSCodePosition(pos)],
+        undefined,
+        'allow'
     );
 
-    const loc = locations?.[0];
+    if (!locationsResult.ok) {
+        return locationsResult;
+    }
+
+    const loc = locationsResult.value?.[0];
     if (!loc) {
         return { ok: true, value: null };
     }
@@ -88,22 +100,22 @@ export async function extractDefinition(
  *
  * @param uri - The URI of the document
  * @param pos - The position of the symbol
- * @returns Promise resolving to array of implementation locations
+ * @returns Implementation locations, empty array when none exist, or {@link LSPError}
  */
 export async function extractImplementations(
     uri: vscode.Uri,
     pos: Position
 ): AsyncResult<readonly Reference[], LSPError> {
-    const locations = await executeWithRetry<vscode.Location[]>(
+    const locationsResult = await executeWithRetry<vscode.Location[]>(
         'vscode.executeImplementationProvider',
         [uri, toVSCodePosition(pos)]
     );
 
-    if (!locations) {
-        return { ok: true, value: [] };
+    if (!locationsResult.ok) {
+        return locationsResult;
     }
 
-    const references: Reference[] = locations.map(loc => ({
+    const references: Reference[] = locationsResult.value.map(loc => ({
         uri: loc.uri.toString() as FileURI,
         range: convertRange(loc.range)
     }));
@@ -121,17 +133,24 @@ export async function extractImplementations(
  *
  * @param uri - The URI of the document
  * @param pos - The position within a function call
- * @returns Promise resolving to signature help or null
+ * @returns Signature help, `null` when none exists, or {@link LSPError}
  */
 export async function extractSignatureHelp(
     uri: vscode.Uri,
     pos: Position
 ): AsyncResult<SignatureInfo | null, LSPError> {
-    const help = await executeWithRetry<vscode.SignatureHelp>(
+    const helpResult = await executeWithRetry<vscode.SignatureHelp>(
         'vscode.executeSignatureHelpProvider',
-        [uri, toVSCodePosition(pos)]
+        [uri, toVSCodePosition(pos)],
+        undefined,
+        'allow'
     );
 
+    if (!helpResult.ok) {
+        return helpResult;
+    }
+
+    const help = helpResult.value;
     if (!help || help.signatures.length === 0) {
         return { ok: true, value: null };
     }
@@ -171,22 +190,22 @@ export async function extractSignatureHelp(
  *
  * @param uri - The URI of the document
  * @param range - The range to get inlay hints for
- * @returns Promise resolving to array of inlay hints
+ * @returns Inlay hints, empty array when none exist, or {@link LSPError}
  */
 export async function extractInlayHints(
     uri: vscode.Uri,
     range: Range
 ): AsyncResult<readonly InlayHintInfo[], LSPError> {
-    const hints = await executeWithRetry<vscode.InlayHint[]>(
+    const hintsResult = await executeWithRetry<vscode.InlayHint[]>(
         'vscode.executeInlayHintProvider',
         [uri, toVSCodeRange(range)]
     );
 
-    if (!hints) {
-        return { ok: true, value: [] };
+    if (!hintsResult.ok) {
+        return hintsResult;
     }
 
-    const converted: InlayHintInfo[] = hints.map((hint: vscode.InlayHint) => {
+    const converted: InlayHintInfo[] = hintsResult.value.map((hint: vscode.InlayHint) => {
         const label = typeof hint.label === 'string'
             ? hint.label
             : hint.label.map((part: vscode.InlayHintLabelPart) => part.value).join('');

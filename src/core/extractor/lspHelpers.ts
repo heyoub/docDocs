@@ -7,8 +7,11 @@
  */
 
 import * as vscode from 'vscode';
+import type { Result } from '../../types/base.js';
 import type { SymbolID, FileURI, Position, Range } from '../../types/base.js';
 import type { SymbolKind } from '../../types/symbols.js';
+import type { LSPError } from './lspTypes.js';
+import { ok, err } from '../../utils/result.js';
 
 // ============================================================
 // Configuration Constants
@@ -22,6 +25,101 @@ export const RETRY_TIMEOUT_MULTIPLIER = 2;
 
 /** Maximum number of retry attempts */
 export const MAX_RETRIES = 1;
+
+// ============================================================
+// LSP Command Execution
+// ============================================================
+
+/**
+ * Whether a null/undefined LSP response is treated as success or unavailable.
+ * - `reject`: null/undefined becomes {@link LSPError} `unavailable` (use for list providers).
+ * - `allow`: null/undefined is returned as `ok` (use when absence is a valid answer, e.g. hover).
+ */
+export type LSPNullPolicy = 'reject' | 'allow';
+
+function isTimeoutError(error: unknown): boolean {
+    return error instanceof Error && error.message.includes('timed out');
+}
+
+function unavailableError(command: string, detail: string): LSPError {
+    return { type: 'unavailable', message: `${command}: ${detail}` };
+}
+
+/**
+ * Executes a VS Code command with timeout handling.
+ * Cleans up the timeout when the command completes first to avoid timer leaks.
+ */
+export async function executeWithTimeout<T>(
+    command: string,
+    args: readonly unknown[],
+    timeoutMs: number,
+    nullPolicy: LSPNullPolicy = 'reject'
+): Promise<Result<T, LSPError>> {
+    const controller = new AbortController();
+    try {
+        const result = await Promise.race([
+            vscode.commands.executeCommand<T>(command, ...args),
+            createTimeout(timeoutMs, controller.signal),
+        ]);
+
+        if (result === null || result === undefined) {
+            if (nullPolicy === 'allow') {
+                return ok(result as T);
+            }
+            return err(unavailableError(command, 'language server returned no result'));
+        }
+
+        return ok(result);
+    } catch (error) {
+        if (isTimeoutError(error)) {
+            throw error;
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        return err({ type: 'unknown', message: `${command}: ${message}` });
+    } finally {
+        controller.abort();
+    }
+}
+
+/**
+ * Executes a VS Code command with retry logic for timeouts.
+ * Never throws; returns {@link Result} for all terminal outcomes.
+ */
+export async function executeWithRetry<T>(
+    command: string,
+    args: readonly unknown[],
+    timeoutMs: number = DEFAULT_TIMEOUT_MS,
+    nullPolicy: LSPNullPolicy = 'reject'
+): Promise<Result<T, LSPError>> {
+    let lastTimeout: LSPError | null = null;
+    let currentTimeout = timeoutMs;
+
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            return await executeWithTimeout<T>(command, args, currentTimeout, nullPolicy);
+        } catch (error) {
+            if (isTimeoutError(error)) {
+                lastTimeout = {
+                    type: 'timeout',
+                    message: error instanceof Error ? error.message : String(error),
+                };
+                currentTimeout *= RETRY_TIMEOUT_MULTIPLIER;
+                continue;
+            }
+            const message = error instanceof Error ? error.message : String(error);
+            return err({ type: 'unknown', message: `${command}: ${message}` });
+        }
+    }
+
+    if (lastTimeout) {
+        console.warn(
+            `LSP command ${command} failed after ${MAX_RETRIES + 1} attempts: ${lastTimeout.message}`
+        );
+        return err(lastTimeout);
+    }
+
+    return err({ type: 'timeout', message: `LSP command ${command} timed out` });
+}
 
 // ============================================================
 // Timeout Handling
@@ -43,62 +141,6 @@ function createTimeout(ms: number, signal?: AbortSignal): Promise<never> {
             { once: true }
         );
     });
-}
-
-/**
- * Executes a VS Code command with timeout handling.
- * Cleans up the timeout when the command completes first to avoid timer leaks.
- */
-export async function executeWithTimeout<T>(
-    command: string,
-    args: readonly unknown[],
-    timeoutMs: number
-): Promise<T | null> {
-    const controller = new AbortController();
-    try {
-        const result = await Promise.race([
-            vscode.commands.executeCommand<T>(command, ...args),
-            createTimeout(timeoutMs, controller.signal),
-        ]);
-        return result ?? null;
-    } catch (error) {
-        if (error instanceof Error && (error.message.includes('timed out') || error.message.includes('cancelled'))) {
-            throw error;
-        }
-        return null;
-    } finally {
-        controller.abort();
-    }
-}
-
-/**
- * Executes a VS Code command with retry logic for timeouts.
- */
-export async function executeWithRetry<T>(
-    command: string,
-    args: readonly unknown[],
-    timeoutMs: number = DEFAULT_TIMEOUT_MS
-): Promise<T | null> {
-    let lastError: Error | null = null;
-    let currentTimeout = timeoutMs;
-
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-        try {
-            return await executeWithTimeout<T>(command, args, currentTimeout);
-        } catch (error) {
-            if (error instanceof Error && error.message.includes('timed out')) {
-                lastError = error;
-                currentTimeout *= RETRY_TIMEOUT_MULTIPLIER;
-                continue;
-            }
-            return null;
-        }
-    }
-
-    if (lastError) {
-        console.warn(`LSP command ${command} failed after ${MAX_RETRIES + 1} attempts: ${lastError.message}`);
-    }
-    return null;
 }
 
 // ============================================================

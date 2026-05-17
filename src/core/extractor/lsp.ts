@@ -1,5 +1,5 @@
 /**
- * @fileoverview LSP-based symbol extraction for GenDocs extension.
+ * @fileoverview LSP-based symbol extraction for docDocs extension.
  * This module wraps VS Code's LSP commands to extract symbols, hover info,
  * references, call hierarchy, and semantic tokens from source files.
  * Layer 3 - imports from types/ (Layer 0) and uses VS Code API.
@@ -17,10 +17,10 @@ import type {
     SemanticToken,
     LSPError
 } from './lspTypes.js';
+import { formatLSPError } from './lspTypes.js';
 import {
     DEFAULT_TIMEOUT_MS,
     executeWithRetry,
-    executeWithTimeout,
     convertRange,
     toVSCodePosition,
     convertSymbolKind,
@@ -40,6 +40,7 @@ export type {
     InlayHintInfo,
     LSPError
 } from './lspTypes.js';
+export { formatLSPError } from './lspTypes.js';
 
 // Re-export extended functions
 export {
@@ -55,6 +56,22 @@ export {
 // ============================================================
 
 /**
+ * Resolves hover for a symbol; hover enrichment failures do not fail symbol extraction.
+ */
+async function resolveHover(uri: vscode.Uri, position: vscode.Position): Promise<vscode.Hover | null> {
+    const hoverResult = await executeWithRetry<vscode.Hover>(
+        'vscode.executeHoverProvider',
+        [uri, position],
+        DEFAULT_TIMEOUT_MS,
+        'allow'
+    );
+    if (!hoverResult.ok) {
+        return null;
+    }
+    return hoverResult.value ?? null;
+}
+
+/**
  * Converts a VS Code DocumentSymbol to our ExtractedSymbol type.
  */
 async function convertDocumentSymbol(
@@ -65,12 +82,7 @@ async function convertDocumentSymbol(
     const fileUri = uri.toString() as FileURI;
     const symbolId = generateSymbolId(fileUri, symbol.name, parentName);
 
-    const hover = await executeWithRetry<vscode.Hover>(
-        'vscode.executeHoverProvider',
-        [uri, symbol.selectionRange.start],
-        DEFAULT_TIMEOUT_MS
-    );
-
+    const hover = await resolveHover(uri, symbol.selectionRange.start);
     const documentation = extractDocumentation(hover);
     const signature = extractSignature(hover, symbol.name);
 
@@ -104,20 +116,21 @@ async function convertDocumentSymbol(
  * Uses vscode.executeDocumentSymbolProvider to retrieve symbols.
  *
  * @param uri - The URI of the document to extract symbols from
- * @returns Promise resolving to array of extracted symbols
+ * @returns Symbols on success; empty array when the document has no symbols;
+ *          {@link LSPError} when the provider is unavailable or times out
  */
 export async function extractSymbols(uri: vscode.Uri): AsyncResult<readonly ExtractedSymbol[], LSPError> {
-    const symbols = await executeWithRetry<vscode.DocumentSymbol[]>(
+    const symbolsResult = await executeWithRetry<vscode.DocumentSymbol[]>(
         'vscode.executeDocumentSymbolProvider',
         [uri]
     );
 
-    if (!symbols) {
-        return { ok: true, value: [] };
+    if (!symbolsResult.ok) {
+        return symbolsResult;
     }
 
     const extracted: ExtractedSymbol[] = [];
-    for (const symbol of symbols) {
+    for (const symbol of symbolsResult.value) {
         const convertedSymbol = await convertDocumentSymbol(symbol, uri);
         extracted.push(convertedSymbol);
     }
@@ -131,17 +144,24 @@ export async function extractSymbols(uri: vscode.Uri): AsyncResult<readonly Extr
  *
  * @param uri - The URI of the document
  * @param pos - The position to get hover info for
- * @returns Promise resolving to hover info or null if unavailable
+ * @returns Hover info, `null` when no hover exists at the position, or {@link LSPError}
  */
 export async function extractHover(
     uri: vscode.Uri,
     pos: Position
 ): AsyncResult<HoverInfo | null, LSPError> {
-    const hover = await executeWithRetry<vscode.Hover>(
+    const hoverResult = await executeWithRetry<vscode.Hover>(
         'vscode.executeHoverProvider',
-        [uri, toVSCodePosition(pos)]
+        [uri, toVSCodePosition(pos)],
+        DEFAULT_TIMEOUT_MS,
+        'allow'
     );
 
+    if (!hoverResult.ok) {
+        return hoverResult;
+    }
+
+    const hover = hoverResult.value ?? null;
     if (!hover) {
         return { ok: true, value: null };
     }
@@ -161,22 +181,22 @@ export async function extractHover(
  *
  * @param uri - The URI of the document
  * @param pos - The position of the symbol to find references for
- * @returns Promise resolving to array of references
+ * @returns References on success, empty array when none exist, or {@link LSPError}
  */
 export async function extractReferences(
     uri: vscode.Uri,
     pos: Position
 ): AsyncResult<readonly Reference[], LSPError> {
-    const locations = await executeWithRetry<vscode.Location[]>(
+    const locationsResult = await executeWithRetry<vscode.Location[]>(
         'vscode.executeReferenceProvider',
         [uri, toVSCodePosition(pos)]
     );
 
-    if (!locations) {
-        return { ok: true, value: [] };
+    if (!locationsResult.ok) {
+        return locationsResult;
     }
 
-    const references: Reference[] = locations.map(loc => ({
+    const references: Reference[] = locationsResult.value.map(loc => ({
         uri: loc.uri.toString() as FileURI,
         range: convertRange(loc.range)
     }));
@@ -190,22 +210,22 @@ export async function extractReferences(
  *
  * @param uri - The URI of the document
  * @param pos - The position of the symbol
- * @returns Promise resolving to array of call hierarchy items
+ * @returns Call hierarchy items, empty array when none exist, or {@link LSPError}
  */
 export async function extractCallHierarchy(
     uri: vscode.Uri,
     pos: Position
 ): AsyncResult<readonly CallHierarchyItem[], LSPError> {
-    const items = await executeWithRetry<vscode.CallHierarchyItem[]>(
+    const itemsResult = await executeWithRetry<vscode.CallHierarchyItem[]>(
         'vscode.prepareCallHierarchy',
         [uri, toVSCodePosition(pos)]
     );
 
-    if (!items) {
-        return { ok: true, value: [] };
+    if (!itemsResult.ok) {
+        return itemsResult;
     }
 
-    const converted: CallHierarchyItem[] = items.map(item => ({
+    const converted: CallHierarchyItem[] = itemsResult.value.map(item => ({
         name: item.name,
         kind: convertSymbolKind(item.kind),
         uri: item.uri.toString() as FileURI,
@@ -221,21 +241,21 @@ export async function extractCallHierarchy(
  * Uses vscode.provideIncomingCalls to find callers.
  *
  * @param item - The call hierarchy item to get incoming calls for
- * @returns Promise resolving to array of incoming call items
+ * @returns Incoming call items, empty array when none exist, or {@link LSPError}
  */
 export async function extractIncomingCalls(
     item: vscode.CallHierarchyItem
 ): AsyncResult<readonly CallHierarchyItem[], LSPError> {
-    const calls = await executeWithRetry<vscode.CallHierarchyIncomingCall[]>(
+    const callsResult = await executeWithRetry<vscode.CallHierarchyIncomingCall[]>(
         'vscode.provideIncomingCalls',
         [item]
     );
 
-    if (!calls) {
-        return { ok: true, value: [] };
+    if (!callsResult.ok) {
+        return callsResult;
     }
 
-    const converted: CallHierarchyItem[] = calls.map(call => ({
+    const converted: CallHierarchyItem[] = callsResult.value.map(call => ({
         name: call.from.name,
         kind: convertSymbolKind(call.from.kind),
         uri: call.from.uri.toString() as FileURI,
@@ -251,21 +271,21 @@ export async function extractIncomingCalls(
  * Uses vscode.provideOutgoingCalls to find callees.
  *
  * @param item - The call hierarchy item to get outgoing calls for
- * @returns Promise resolving to array of outgoing call items
+ * @returns Outgoing call items, empty array when none exist, or {@link LSPError}
  */
 export async function extractOutgoingCalls(
     item: vscode.CallHierarchyItem
 ): AsyncResult<readonly CallHierarchyItem[], LSPError> {
-    const calls = await executeWithRetry<vscode.CallHierarchyOutgoingCall[]>(
+    const callsResult = await executeWithRetry<vscode.CallHierarchyOutgoingCall[]>(
         'vscode.provideOutgoingCalls',
         [item]
     );
 
-    if (!calls) {
-        return { ok: true, value: [] };
+    if (!callsResult.ok) {
+        return callsResult;
     }
 
-    const converted: CallHierarchyItem[] = calls.map(call => ({
+    const converted: CallHierarchyItem[] = callsResult.value.map(call => ({
         name: call.to.name,
         kind: convertSymbolKind(call.to.kind),
         uri: call.to.uri.toString() as FileURI,
@@ -281,17 +301,24 @@ export async function extractOutgoingCalls(
  * Uses vscode.provideDocumentSemanticTokens to get token classifications.
  *
  * @param uri - The URI of the document to extract semantic tokens from
- * @returns Promise resolving to array of semantic tokens
+ * @returns Semantic tokens, empty array when none exist, or {@link LSPError}
  */
 export async function extractSemanticTokens(
     uri: vscode.Uri
 ): AsyncResult<readonly SemanticToken[], LSPError> {
-    const result = await executeWithRetry<vscode.SemanticTokens>(
+    const tokensResult = await executeWithRetry<vscode.SemanticTokens>(
         'vscode.provideDocumentSemanticTokens',
-        [uri]
+        [uri],
+        DEFAULT_TIMEOUT_MS,
+        'allow'
     );
 
-    if (!result || !result.data || result.data.length === 0) {
+    if (!tokensResult.ok) {
+        return tokensResult;
+    }
+
+    const result = tokensResult.value;
+    if (!result?.data || result.data.length === 0) {
         return { ok: true, value: [] };
     }
 
@@ -341,14 +368,22 @@ export async function extractSemanticTokens(
  * @returns Promise resolving to true if LSP is available
  */
 export async function isLSPAvailable(uri: vscode.Uri): Promise<boolean> {
-    try {
-        const symbols = await executeWithTimeout<vscode.DocumentSymbol[]>(
-            'vscode.executeDocumentSymbolProvider',
-            [uri],
-            2000
-        );
-        return symbols !== null;
-    } catch {
-        return false;
+    const result = await executeWithRetry<vscode.DocumentSymbol[]>(
+        'vscode.executeDocumentSymbolProvider',
+        [uri],
+        2000
+    );
+    return result.ok;
+}
+
+/**
+ * @deprecated Prefer {@link extractSymbols} and handle `!result.ok`. Returns an empty array on failure.
+ */
+export async function extractSymbolsLegacy(uri: vscode.Uri): Promise<readonly ExtractedSymbol[]> {
+    const result = await extractSymbols(uri);
+    if (!result.ok) {
+        console.warn(formatLSPError(result.error));
+        return [];
     }
+    return result.value;
 }

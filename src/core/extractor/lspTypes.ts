@@ -122,3 +122,17 @@ export type LSPError =
     | { readonly type: 'timeout'; readonly message: string }
     | { readonly type: 'unavailable'; readonly message: string }
     | { readonly type: 'unknown'; readonly message: string };
+
+/**
+ * Formats an LSP error for display in the UI or logs.
+ */
+export function formatLSPError(error: LSPError): string {
+    switch (error.type) {
+        case 'timeout':
+            return `LSP timed out: ${error.message}`;
+        case 'unavailable':
+            return `LSP unavailable: ${error.message}`;
+        case 'unknown':
+            return error.message;
+    }
+}

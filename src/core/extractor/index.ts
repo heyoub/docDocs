@@ -47,6 +47,7 @@ export type {
     InlayHintInfo,
     LSPError
 } from './lspTypes.js';
+export { formatLSPError } from './lspTypes.js';
 
 // Export extraction functions
 export {
@@ -65,6 +66,7 @@ export {
     MAX_RETRIES,
     executeWithTimeout,
     executeWithRetry,
+    type LSPNullPolicy,
     convertPosition,
     convertRange,
     toVSCodePosition,
