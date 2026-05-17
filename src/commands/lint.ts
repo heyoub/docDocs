@@ -204,6 +204,7 @@ export async function checkFreshnessCommand(): Promise<void> {
 
                 const currentHashes = new Map<FileURI, string>();
                 const existingFiles = new Set<string>();
+                let skippedFiles = 0;
 
                 for (const file of files) {
                     progress.report({ message: `Checking ${file.fsPath}` });
@@ -218,17 +219,21 @@ export async function checkFreshnessCommand(): Promise<void> {
                         currentHashes.set(fileUri, hash);
                         existingFiles.add(fileUri);
                     } catch {
-                        // Skip files that can't be read
+                        skippedFiles++;
                     }
                 }
 
                 const stats = getStatistics(currentHashes, existingFiles);
 
+                const skippedLine = skippedFiles > 0
+                    ? `\n⏭️ Skipped (unreadable): ${skippedFiles}`
+                    : '';
                 const message = `Documentation Freshness:\n` +
                     `✅ Fresh: ${stats.fresh}\n` +
                     `⚠️ Stale: ${stats.stale}\n` +
                     `🗑️ Orphaned: ${stats.orphaned}\n` +
-                    `📊 Total: ${stats.total}`;
+                    `📊 Total: ${stats.total}` +
+                    skippedLine;
 
                 vscode.window.showInformationMessage(message);
             }

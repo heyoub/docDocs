@@ -12,6 +12,20 @@ import { extractSymbols, formatLSPError } from '../core/extractor/lsp.js';
 import { generateWorkspaceSchema } from '../core/schema/generator.js';
 import { tryGenerateModuleSchema } from '../core/schema/generator.js';
 import { loadConfigForCommand } from '../state/config.js';
+import { GenDocsDiagnosticsManager } from '../providers/diagnostics.js';
+
+// ============================================================
+// Diagnostics Manager Instance
+// ============================================================
+
+let diagnosticsManager: GenDocsDiagnosticsManager | null = null;
+
+/**
+ * Sets the diagnostics manager instance.
+ */
+export function setDiagnosticsManager(manager: GenDocsDiagnosticsManager): void {
+    diagnosticsManager = manager;
+}
 
 // ============================================================
 // Helper Functions
@@ -157,6 +171,7 @@ export async function exportLSIFCommand(): Promise<void> {
 
             const moduleSchemas = new Map<string, ModuleSchema>();
             let lspSkipped = 0;
+            let schemaSkipped = 0;
 
             for (const file of files) {
                 if (token.isCancellationRequested) break;
@@ -165,7 +180,11 @@ export async function exportLSIFCommand(): Promise<void> {
                 const symbolsResult = await extractSymbols(file);
                 if (!symbolsResult.ok) {
                     lspSkipped++;
-                    console.warn(`Export skipped ${file.fsPath}: ${formatLSPError(symbolsResult.error)}`);
+                    const fileUri = file.toString() as FileURI;
+                    diagnosticsManager?.reportExtractionFailure(
+                        fileUri,
+                        formatLSPError(symbolsResult.error)
+                    );
                     continue;
                 }
 
@@ -180,15 +199,20 @@ export async function exportLSIFCommand(): Promise<void> {
                 };
                 const schemaResult = tryGenerateModuleSchema(extraction);
                 if (!schemaResult.ok) {
-                    console.warn(`Export skipped ${file.fsPath}: ${schemaResult.error}`);
+                    schemaSkipped++;
+                    diagnosticsManager?.reportExtractionFailure(
+                        extraction.uri,
+                        schemaResult.error
+                    );
                     continue;
                 }
                 moduleSchemas.set(schemaResult.value.path, schemaResult.value);
             }
 
-            if (lspSkipped > 0) {
+            const skipped = lspSkipped + schemaSkipped;
+            if (skipped > 0) {
                 vscode.window.showWarningMessage(
-                    `LSIF export omitted ${lspSkipped} file(s): LSP symbol provider unavailable or timed out`
+                    `LSIF export omitted ${skipped} file(s) (${lspSkipped} LSP, ${schemaSkipped} schema)`
                 );
             }
 
@@ -228,6 +252,7 @@ export async function exportOpenAPICommand(): Promise<void> {
 
             const moduleSchemas = new Map<string, ModuleSchema>();
             let lspSkipped = 0;
+            let schemaSkipped = 0;
 
             for (const file of files) {
                 if (token.isCancellationRequested) break;
@@ -236,7 +261,11 @@ export async function exportOpenAPICommand(): Promise<void> {
                 const symbolsResult = await extractSymbols(file);
                 if (!symbolsResult.ok) {
                     lspSkipped++;
-                    console.warn(`Export skipped ${file.fsPath}: ${formatLSPError(symbolsResult.error)}`);
+                    const fileUri = file.toString() as FileURI;
+                    diagnosticsManager?.reportExtractionFailure(
+                        fileUri,
+                        formatLSPError(symbolsResult.error)
+                    );
                     continue;
                 }
 
@@ -251,15 +280,20 @@ export async function exportOpenAPICommand(): Promise<void> {
                 };
                 const schemaResult = tryGenerateModuleSchema(extraction);
                 if (!schemaResult.ok) {
-                    console.warn(`Export skipped ${file.fsPath}: ${schemaResult.error}`);
+                    schemaSkipped++;
+                    diagnosticsManager?.reportExtractionFailure(
+                        extraction.uri,
+                        schemaResult.error
+                    );
                     continue;
                 }
                 moduleSchemas.set(schemaResult.value.path, schemaResult.value);
             }
 
-            if (lspSkipped > 0) {
+            const skipped = lspSkipped + schemaSkipped;
+            if (skipped > 0) {
                 vscode.window.showWarningMessage(
-                    `OpenAPI export omitted ${lspSkipped} file(s): LSP symbol provider unavailable or timed out`
+                    `OpenAPI export omitted ${skipped} file(s) (${lspSkipped} LSP, ${schemaSkipped} schema)`
                 );
             }
 

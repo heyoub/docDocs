@@ -28,6 +28,17 @@ import { renderChangelog } from '../core/changelog/renderer.js';
 import { loadConfigForCommand } from '../state/config.js';
 // contentHash is used internally by createModuleSnapshot
 
+/**
+ * Reports files skipped during snapshot/changelog batch processing.
+ */
+function reportSnapshotSkipped(skipped: number): void {
+    if (skipped <= 0) return;
+    const suffix = skipped === 1 ? '' : 's';
+    vscode.window.showWarningMessage(
+        `${skipped} file${suffix} could not be included in the snapshot`
+    );
+}
+
 // ============================================================
 // Snapshot Creation
 // ============================================================
@@ -81,7 +92,7 @@ export async function createSnapshotCommand(): Promise<void> {
             if (token.isCancellationRequested) return;
 
             const moduleSnapshots: ModuleAPISnapshot[] = [];
-            let processed = 0;
+            let skipped = 0;
 
             for (const file of files) {
                 if (token.isCancellationRequested) break;
@@ -93,18 +104,20 @@ export async function createSnapshotCommand(): Promise<void> {
 
                 try {
                     const moduleSnapshot = await createModuleSnapshotForFile(file, folder);
-                    if (moduleSnapshot && moduleSnapshot.exports.length > 0) {
+                    if (moduleSnapshot === null) {
+                        skipped++;
+                    } else if (moduleSnapshot.exports.length > 0) {
                         moduleSnapshots.push(moduleSnapshot);
                     }
                 } catch (e) {
-                    // Skip files that fail to process
-                    console.warn(`Failed to process ${file.fsPath}:`, e);
+                    skipped++;
+                    console.warn(`[docDocs] Failed to process ${file.fsPath}:`, e);
                 }
-
-                processed++;
             }
 
             if (token.isCancellationRequested) return;
+
+            reportSnapshotSkipped(skipped);
 
             progress.report({ message: 'Saving snapshot...' });
 
@@ -408,19 +421,25 @@ export async function generateChangelogCommand(): Promise<void> {
             );
 
             const moduleSnapshots: ModuleAPISnapshot[] = [];
+            let skipped = 0;
 
             for (const file of files) {
                 if (token.isCancellationRequested) return;
 
                 try {
                     const moduleSnapshot = await createModuleSnapshotForFile(file, folder);
-                    if (moduleSnapshot && moduleSnapshot.exports.length > 0) {
+                    if (moduleSnapshot === null) {
+                        skipped++;
+                    } else if (moduleSnapshot.exports.length > 0) {
                         moduleSnapshots.push(moduleSnapshot);
                     }
                 } catch (e) {
-                    // Skip files that fail
+                    skipped++;
+                    console.warn(`[docDocs] Failed to process ${file.fsPath}:`, e);
                 }
             }
+
+            reportSnapshotSkipped(skipped);
 
             // Create temporary "current" snapshot (not persisted)
             const currentSnapshot: APISnapshot = {
