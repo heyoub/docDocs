@@ -76,10 +76,20 @@ export const modelsLoadingAtom = atom(true);
 // Derived Atoms
 // ============================================================================
 
+/** Registry model enriched with cache, download, and selection state. */
+export interface EnrichedModelInfo extends ModelInfo {
+  isCached: boolean;
+  cachedInfo?: CachedModelInfo;
+  recommendation?: ModelRecommendation;
+  downloadProgress?: DownloadProgress;
+  isSelected: boolean;
+  isDownloading: boolean;
+}
+
 /**
  * Models with their cached status
  */
-export const availableModelsAtom = atom((get) => {
+export const availableModelsAtom = atom((get): EnrichedModelInfo[] => {
   const registry = get(modelRegistryAtom);
   const cached = get(cachedModelsAtom);
   const recommendations = get(modelRecommendationsAtom);
@@ -192,7 +202,7 @@ export const modelSearchQueryAtom = atom('');
 /**
  * Filtered models based on current filters
  */
-export const filteredModelsAtom = atom((get) => {
+export const filteredModelsAtom = atom((get): EnrichedModelInfo[] => {
   const models = get(availableModelsAtom);
   const categoryFilter = get(modelCategoryFilterAtom);
   const statusFilter = get(modelStatusFilterAtom);

@@ -22,6 +22,7 @@ import { ModelCard, type ModelCardStatus } from '../molecules/ModelCard';
 import { usePostMessage } from '../../hooks';
 import {
   filteredModelsAtom,
+  type EnrichedModelInfo,
   modelCategoryFilterAtom,
   modelSearchQueryAtom,
   systemCapabilitiesAtom,
@@ -33,20 +34,6 @@ import {
   modelsLoadingAtom,
   type ModelCategoryFilter,
 } from '../../store/models';
-import type { ModelInfo, DownloadProgress, ModelRecommendation } from '../../../../protocol';
-
-// ============================================================================
-// Types
-// ============================================================================
-
-interface ExtendedModelInfo extends ModelInfo {
-  isCached: boolean;
-  isSelected: boolean;
-  isDownloading: boolean;
-  downloadProgress?: DownloadProgress;
-  recommendation?: ModelRecommendation;
-}
-
 // ============================================================================
 // Helper Components
 // ============================================================================
@@ -164,7 +151,7 @@ function SearchAndFilter() {
 }
 
 function ModelGrid() {
-  const models = useAtomValue(filteredModelsAtom) as ExtendedModelInfo[];
+  const models = useAtomValue(filteredModelsAtom);
   const selectedModelId = useAtomValue(selectedModelIdAtom);
   const postMessage = usePostMessage();
   const isLoading = useAtomValue(modelsLoadingAtom);
@@ -187,7 +174,7 @@ function ModelGrid() {
     }
   };
 
-  const getStatus = (model: ExtendedModelInfo): ModelCardStatus => {
+  const getStatus = (model: EnrichedModelInfo): ModelCardStatus => {
     if (model.isDownloading) return 'downloading';
     if (model.id === selectedModelId) return 'selected';
     if (model.isCached) return 'downloaded';
