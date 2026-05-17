@@ -63,6 +63,29 @@ export function formatConfigError(error: ConfigError): string {
  * Loads config for command handlers. On load/parse/validation failure, shows a
  * warning once per workspace and returns defaults (missing file still uses defaults silently).
  */
+/** VS Code setting default for watch debounce (matches package.json contributes) */
+const VSCODE_WATCH_DEBOUNCE_MS_DEFAULT = 1000;
+
+/**
+ * Resolves watch settings from VS Code workspace configuration and `.docdocs.json`.
+ * VS Code `docdocs.watch.*` keys override file config for `enabled` and `debounceMs`;
+ * `autoRegenerate` comes from the merged file config only.
+ */
+export async function resolveWatchConfig(
+    folder: vscode.WorkspaceFolder
+): Promise<WatchConfig> {
+    const fileConfig = await loadConfigForCommand(folder);
+    const vscodeConfig = vscode.workspace.getConfiguration('docdocs', folder.uri);
+    return {
+        enabled: vscodeConfig.get<boolean>('watch.enabled', fileConfig.watch.enabled),
+        debounceMs: vscodeConfig.get<number>(
+            'watch.debounceMs',
+            fileConfig.watch.debounceMs ?? VSCODE_WATCH_DEBOUNCE_MS_DEFAULT
+        ),
+        autoRegenerate: fileConfig.watch.autoRegenerate,
+    };
+}
+
 export async function loadConfigForCommand(
     folder: vscode.WorkspaceFolder
 ): Promise<GenDocsConfig> {
