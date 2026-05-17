@@ -4,6 +4,7 @@ node_modules/
 # Build output
 dist/
 out/
+wasm/
 
 # VS Code extension package
 *.vsix

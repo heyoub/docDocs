@@ -16,6 +16,7 @@ import {
     SYMBOL_NODE_TYPES,
     COMMENT_NODE_TYPES
 } from './treeSitterTypes.js';
+import { grammarWasmPath, getTreeSitterWasmDirectory } from './treeSitterPaths.js';
 
 // Re-export DocComment type
 export type { DocComment } from './treeSitterTypes.js';
@@ -59,7 +60,7 @@ export async function loadLanguage(languageId: string): Promise<void> {
 
     try {
         const TreeSitter = await import('web-tree-sitter');
-        const language = await TreeSitter.default.Language.load(`tree-sitter-${grammarName}.wasm`);
+        const language = await TreeSitter.default.Language.load(grammarWasmPath(grammarName));
         loadedLanguages.set(languageId, language);
     } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -127,7 +128,13 @@ async function ensureInitialized(): Promise<void> {
     if (initialized) return;
     try {
         const TreeSitter = await import('web-tree-sitter');
-        await TreeSitter.default.init();
+        const wasmDir = getTreeSitterWasmDirectory();
+        const init = TreeSitter.default.init as (options?: {
+            locateFile?: (scriptName: string, scriptDirectory: string) => string;
+        }) => Promise<void>;
+        await init({
+            locateFile: (scriptName: string) => `${wasmDir}/${scriptName}`,
+        });
         parserInstance = new TreeSitter.default();
         initialized = true;
     } catch (error) {
