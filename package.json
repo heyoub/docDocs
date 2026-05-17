@@ -79,6 +79,26 @@
                 "title": "docdocs: Export LSIF Index"
             },
             {
+                "command": "docdocs.exportOpenAPI",
+                "title": "docdocs: Export OpenAPI Spec"
+            },
+            {
+                "command": "docdocs.exportGraphQL",
+                "title": "docdocs: Export GraphQL Schema"
+            },
+            {
+                "command": "docdocs.exportHardeningReport",
+                "title": "docdocs: Export Hardening Report"
+            },
+            {
+                "command": "docdocs.exportTraceabilityReport",
+                "title": "docdocs: Export Traceability Report"
+            },
+            {
+                "command": "docdocs.exportFlowReport",
+                "title": "docdocs: Export Control Flow Report"
+            },
+            {
                 "command": "docdocs.toggleWatch",
                 "title": "docdocs: Toggle Watch Mode"
             },
@@ -89,6 +109,14 @@
             {
                 "command": "docdocs.openOnboarding",
                 "title": "docdocs: Open Setup Wizard"
+            },
+            {
+                "command": "docdocs.configureOpenRouterApiKey",
+                "title": "docdocs: Configure OpenRouter API Key"
+            },
+            {
+                "command": "docdocs.pickOpenRouterModel",
+                "title": "docdocs: Pick OpenRouter Model"
             }
         ],
         "views": {
@@ -151,6 +179,16 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Enable ML-powered prose generation"
+                },
+                "docdocs.ml.openRouter.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Use OpenRouter cloud models when local ML workers are unavailable in the extension host"
+                },
+                "docdocs.ml.openRouter.model": {
+                    "type": "string",
+                    "default": "openrouter/auto",
+                    "description": "OpenRouter model for prose fallback (openrouter/auto picks the best model per prompt)"
                 },
                 "docdocs.ml.model": {
                     "type": "string",
@@ -228,6 +266,11 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Warm documentation cache for tracked files when the extension activates"
+                },
+                "docdocs.completion.warmWorkspaceOnActivate": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Also warm a bounded sample of workspace source files on activate (may increase startup time)"
                 },
                 "docdocs.statusBar.enabled": {
                     "type": "boolean",
@@ -351,11 +394,11 @@
         "vscode:prepublish": "bun run build",
         "build": "bun run build:extension && bun run build:webview && bun run build:mcp",
         "build:copy-wasm": "node scripts/copy-tree-sitter-wasm.mjs",
-        "build:extension": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node && bun run build:copy-wasm",
+        "build:extension": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:@openrouter/sdk --external:@huggingface/transformers --external:onnxruntime-node --format=cjs --platform=node && bun run build:copy-wasm",
         "build:webview": "vite build --config src/webview/vite.config.ts",
         "build:mcp": "esbuild ./src/mcp/index.ts --bundle --outfile=dist/mcp/index.js --format=esm --platform=node --banner:js=\"#!/usr/bin/env node\" --external:@modelcontextprotocol/sdk --external:vectordb --external:@huggingface/transformers --external:onnxruntime-node",
         "watch": "concurrently \"bun run watch:extension\" \"bun run watch:webview\"",
-        "watch:extension": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --watch",
+        "watch:extension": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:@openrouter/sdk --external:@huggingface/transformers --external:onnxruntime-node --format=cjs --platform=node --watch",
         "watch:webview": "vite build --config src/webview/vite.config.ts --watch",
         "dev:webview": "vite --config src/webview/vite.config.ts",
         "test": "vitest run",
@@ -372,6 +415,7 @@
     "dependencies": {
         "@huggingface/transformers": "^3.0.0",
         "@modelcontextprotocol/sdk": "^1.25.3",
+        "@openrouter/sdk": "^0.12.35",
         "@radix-ui/react-checkbox": "^1.0.4",
         "@radix-ui/react-collapsible": "^1.0.3",
         "@radix-ui/react-dialog": "^1.0.5",
