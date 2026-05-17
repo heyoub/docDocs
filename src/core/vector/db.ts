@@ -4,7 +4,7 @@
  */
 
 import type { Chunk, EmbeddedChunk, ContentType, HierarchyLevel, SearchQuery, SearchHit, DbRecord } from './types.js';
-import { CONTENT_TYPES, HIERARCHY_LEVELS, hit } from './types.js';
+import { CONTENT_TYPES, HIERARCHY_LEVELS, hit, parseChunkMeta } from './types.js';
 
 // =============================================================================
 // Constants
@@ -136,7 +136,7 @@ export class VectorDatabase {
       parent: r.parent ?? undefined,
       lines: r.line_start !== null && r.line_end !== null ? [r.line_start, r.line_end] : undefined,
       lang: r.lang ?? undefined,
-      meta: JSON.parse(r.meta) as Chunk['meta'],
+      meta: parseChunkMeta(r.meta),
     };
   }
 

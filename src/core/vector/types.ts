@@ -33,6 +33,48 @@ export interface ChunkMeta {
   dependencies?: string[];
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** Runtime guard for chunk metadata parsed from storage. */
+export function isChunkMeta(value: unknown): value is ChunkMeta {
+  if (!isPlainObject(value)) {
+    return false;
+  }
+  const r = value;
+  if (r['modulePath'] !== undefined && typeof r['modulePath'] !== 'string') return false;
+  if (r['signature'] !== undefined && typeof r['signature'] !== 'string') return false;
+  if (r['visibility'] !== undefined && typeof r['visibility'] !== 'string') return false;
+  if (r['isExported'] !== undefined && typeof r['isExported'] !== 'boolean') return false;
+  if (r['complexity'] !== undefined && typeof r['complexity'] !== 'number') return false;
+  if (r['commitSha'] !== undefined && typeof r['commitSha'] !== 'string') return false;
+  if (r['prNumber'] !== undefined && typeof r['prNumber'] !== 'number') return false;
+  if (r['author'] !== undefined && typeof r['author'] !== 'string') return false;
+  if (r['timestamp'] !== undefined && typeof r['timestamp'] !== 'number') return false;
+  if (r['dependencies'] !== undefined) {
+    if (!Array.isArray(r['dependencies']) || !r['dependencies'].every(d => typeof d === 'string')) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/** Parse chunk metadata JSON with validation; returns `{}` on invalid input. */
+export function parseChunkMeta(json: string): ChunkMeta {
+  try {
+    const parsed: unknown = JSON.parse(json);
+    if (!isChunkMeta(parsed)) {
+      console.warn('[docDocs] Invalid chunk meta; using empty metadata');
+      return {};
+    }
+    return parsed;
+  } catch {
+    console.warn('[docDocs] Failed to parse chunk meta; using empty metadata');
+    return {};
+  }
+}
+
 /** A semantic unit of content for embedding */
 export interface Chunk {
   id: string;

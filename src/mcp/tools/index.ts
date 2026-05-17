@@ -24,6 +24,7 @@ import {
   analyzeStalenessReport,
   getStaleFiles,
 } from '../heuristics/staleness.js';
+import { readDocIndexDates } from '../jsonGuards.js';
 
 // ============================================================
 // Helper Functions
@@ -46,27 +47,6 @@ async function findSourceFiles(projectRoot: string): Promise<string[]> {
     files.push(...matches);
   }
   return [...new Set(files)];
-}
-
-function readDocIndex(projectRoot: string): Map<string, Date> {
-  const indexPath = path.join(projectRoot, '.docdocs', 'index.json');
-  const index = new Map<string, Date>();
-
-  try {
-    if (fs.existsSync(indexPath)) {
-      const data = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
-      for (const [file, info] of Object.entries(data.files || {})) {
-        const entry = info as { lastGenerated?: string };
-        if (entry.lastGenerated) {
-          index.set(path.resolve(projectRoot, file), new Date(entry.lastGenerated));
-        }
-      }
-    }
-  } catch (error) {
-    console.error('[docDocs MCP] Failed to read documentation index:', error);
-  }
-
-  return index;
 }
 
 // ============================================================
@@ -195,7 +175,7 @@ export function registerTools(server: McpServer): void {
         files = files.filter(f => path.resolve(projectRoot, f).startsWith(absPath));
       }
 
-      const docIndex = readDocIndex(projectRoot);
+      const docIndex = readDocIndexDates(projectRoot);
       const reports = await analyzeStalenessReport(projectRoot, files, docIndex);
       const stale = getStaleFiles(reports, 1).slice(0, limit);
 
@@ -271,7 +251,7 @@ export function registerTools(server: McpServer): void {
         files = files.filter(f => path.resolve(projectRoot, f).startsWith(absPath));
       }
 
-      const docIndex = readDocIndex(projectRoot);
+      const docIndex = readDocIndexDates(projectRoot);
       const documentedFiles = new Set(docIndex.keys());
       const graph = await analyzeImportance(projectRoot, files);
       const undocumented = getUndocumentedHighPriority(graph, documentedFiles, limit * 2);
@@ -477,7 +457,7 @@ export function registerTools(server: McpServer): void {
         files = files.filter(f => path.resolve(projectRoot, f).startsWith(absPath));
       }
 
-      const docIndex = readDocIndex(projectRoot);
+      const docIndex = readDocIndexDates(projectRoot);
       const graph = await analyzeImportance(projectRoot, files);
 
       // Calculate coverage stats

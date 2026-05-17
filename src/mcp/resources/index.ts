@@ -12,6 +12,7 @@ import { glob } from 'glob';
 
 import { analyzeImportance } from '../heuristics/importance.js';
 import { analyzeComplexityBatch } from '../heuristics/complexity.js';
+import { readDocIndex, readFreshnessIndex, readMcpConfig } from '../jsonGuards.js';
 
 // ============================================================
 // Helper Functions
@@ -36,61 +37,6 @@ async function findSourceFiles(projectRoot: string): Promise<string[]> {
   return [...new Set(files)];
 }
 
-function readConfig(projectRoot: string): Record<string, unknown> {
-  const configPaths = [
-    '.docdocs.json',
-    '.docdocs/config.json',
-    'docdocs.config.json',
-  ];
-
-  for (const configPath of configPaths) {
-    const fullPath = path.join(projectRoot, configPath);
-    try {
-      if (fs.existsSync(fullPath)) {
-        return JSON.parse(fs.readFileSync(fullPath, 'utf-8'));
-      }
-    } catch {
-      // Continue to next path
-    }
-  }
-
-  // Default config
-  return {
-    output: {
-      directory: '.docdocs',
-      formats: ['markdown', 'ai-context'],
-    },
-    extraction: {
-      treeSitterFallback: true,
-      timeout: 5000,
-    },
-  };
-}
-
-function readFreshnessIndex(projectRoot: string): Record<string, unknown> {
-  const indexPath = path.join(projectRoot, '.docdocs', 'freshness.json');
-  try {
-    if (fs.existsSync(indexPath)) {
-      return JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
-    }
-  } catch {
-    // Index doesn't exist
-  }
-  return { version: 1, files: {} };
-}
-
-function readDocIndex(projectRoot: string): Record<string, unknown> {
-  const indexPath = path.join(projectRoot, '.docdocs', 'index.json');
-  try {
-    if (fs.existsSync(indexPath)) {
-      return JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
-    }
-  } catch {
-    // Index doesn't exist
-  }
-  return { version: 1, files: {}, generated: new Date().toISOString() };
-}
-
 // ============================================================
 // Resource Registration
 // ============================================================
@@ -104,7 +50,7 @@ export function registerResources(server: McpServer): void {
     'DocDocs Configuration',
     async (uri) => {
       const projectRoot = getProjectRoot();
-      const config = readConfig(projectRoot);
+      const config = readMcpConfig(projectRoot);
 
       return {
         contents: [{
@@ -146,7 +92,7 @@ export function registerResources(server: McpServer): void {
       const projectRoot = getProjectRoot();
       const files = await findSourceFiles(projectRoot);
       const docIndex = readDocIndex(projectRoot);
-      const indexFiles = (docIndex['files'] as Record<string, unknown>) ?? {};
+      const indexFiles = docIndex.files;
 
       // Calculate coverage
       let totalSymbols = 0;

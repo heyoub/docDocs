@@ -33,6 +33,20 @@ interface CacheManifest {
   models: Record<string, CachedModelInfo>;
 }
 
+function isCacheManifest(value: unknown): value is CacheManifest {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  if (typeof record['version'] !== 'number') {
+    return false;
+  }
+  if (typeof record['models'] !== 'object' || record['models'] === null) {
+    return false;
+  }
+  return true;
+}
+
 // ============================================================
 // Constants
 // ============================================================
@@ -307,7 +321,14 @@ export class ModelCacheManager {
   private async loadManifest(): Promise<void> {
     try {
       const content = await fs.readFile(this.manifestPath, 'utf-8');
-      this.manifest = JSON.parse(content) as CacheManifest;
+      const parsed: unknown = JSON.parse(content);
+      if (!isCacheManifest(parsed)) {
+        console.warn('[docDocs] Invalid cache manifest; resetting cache index');
+        this.manifest = { version: MANIFEST_VERSION, models: {} };
+        await this.saveManifest();
+        return;
+      }
+      this.manifest = parsed;
 
       // Migrate if needed
       if (this.manifest.version !== MANIFEST_VERSION) {
