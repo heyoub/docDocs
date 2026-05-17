@@ -17,7 +17,6 @@ import type {
     SemanticToken,
     LSPError
 } from './lspTypes.js';
-import { formatLSPError } from './lspTypes.js';
 import {
     DEFAULT_TIMEOUT_MS,
     executeWithRetry,
@@ -374,16 +373,4 @@ export async function isLSPAvailable(uri: vscode.Uri): Promise<boolean> {
         2000
     );
     return result.ok;
-}
-
-/**
- * @deprecated Prefer {@link extractSymbols} and handle `!result.ok`. Returns an empty array on failure.
- */
-export async function extractSymbolsLegacy(uri: vscode.Uri): Promise<readonly ExtractedSymbol[]> {
-    const result = await extractSymbols(uri);
-    if (!result.ok) {
-        console.warn(formatLSPError(result.error));
-        return [];
-    }
-    return result.value;
 }
