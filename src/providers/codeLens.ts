@@ -29,6 +29,22 @@ const COMMAND_CHECK_FRESHNESS = 'docdocs.checkFreshnessForSymbol';
 // Types
 // ============================================================
 
+type CodeLensDiagnosticReporter = (uri: FileURI, message: string) => void;
+
+let reportCodeLensDiagnostic: CodeLensDiagnosticReporter | undefined;
+let clearCodeLensDiagnostic: ((uri: FileURI) => void) | undefined;
+
+/**
+ * Registers optional callbacks for CodeLens extraction failures (Problems panel).
+ */
+export function registerCodeLensDiagnostics(
+    report: CodeLensDiagnosticReporter,
+    clear?: (uri: FileURI) => void
+): void {
+    reportCodeLensDiagnostic = report;
+    clearCodeLensDiagnostic = clear;
+}
+
 /**
  * Data attached to CodeLens items for command execution.
  */
@@ -75,11 +91,18 @@ function toVSCodeRange(symbol: ExtractedSymbol): vscode.Range {
 async function getExportedSymbols(
     document: vscode.TextDocument
 ): Promise<readonly ExtractedSymbol[]> {
+    const uri = document.uri.toString() as FileURI;
     const result = await extractSymbols(document.uri);
     if (!result.ok) {
-        console.warn(`[docDocs] CodeLens: ${formatLSPError(result.error)}`);
+        const message = formatLSPError(result.error);
+        if (reportCodeLensDiagnostic) {
+            reportCodeLensDiagnostic(uri, message);
+        } else {
+            console.warn(`[docDocs] CodeLens: ${message}`);
+        }
         return [];
     }
+    clearCodeLensDiagnostic?.(uri);
     return result.value.filter(isExportedSymbol);
 }
 
