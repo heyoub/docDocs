@@ -1,0 +1,752 @@
+{
+  "$schema": "https://github.com/Heyoub/docDocs#ai-context-schema",
+  "version": "1.0.0",
+  "module": "src/ui/dashboardProvider.ts",
+  "purpose": "Module providing variable, class, constructor, property, method, function definitions. Main exports: VIEW_TYPE, DashboardProvider, constructor.",
+  "publicAPI": {
+    "functions": [
+      {
+        "name": "createPanel",
+        "signature": "createPanel",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "panel.onDidDispose() callback",
+        "signature": "panel.onDidDispose() callback",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "vscode.window.onDidChangeActiveColorTheme() callback",
+        "signature": "vscode.window.onDidChangeActiveColorTheme() callback",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "dispose",
+        "signature": "dispose",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "ensureManagersInitialized",
+        "signature": "ensureManagersInitialized",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "getDefaultConfig",
+        "signature": "getDefaultConfig",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "getDefaultCoverage",
+        "signature": "getDefaultCoverage",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "getHtml",
+        "signature": "getHtml",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "getModelState",
+        "signature": "getModelState",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "handleMessage",
+        "signature": "handleMessage",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "handleModelDelete",
+        "signature": "handleModelDelete",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "handleModelDownload",
+        "signature": "handleModelDownload",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "downloadManager.download() callback",
+        "signature": "downloadManager.download() callback",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "handleModelSelect",
+        "signature": "handleModelSelect",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "initializeModelManagers",
+        "signature": "initializeModelManagers",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "notifyGenerationComplete",
+        "signature": "notifyGenerationComplete",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "postMessage",
+        "signature": "postMessage",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "refreshConfigAndOpenRouterState",
+        "signature": "refreshConfigAndOpenRouterState",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "saveConfig",
+        "signature": "saveConfig",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "sendInitialData",
+        "signature": "sendInitialData",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "sendModelState",
+        "signature": "sendModelState",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "sendOpenRouterState",
+        "signature": "sendOpenRouterState",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "setContext",
+        "signature": "setContext",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "show",
+        "signature": "show",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "updateConfig",
+        "signature": "updateConfig",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "updateCoverage",
+        "signature": "updateCoverage",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "updateFreshness",
+        "signature": "updateFreshness",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "updateGenerationProgress",
+        "signature": "updateGenerationProgress",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "updateRecentDocs",
+        "signature": "updateRecentDocs",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "updateSnapshots",
+        "signature": "updateSnapshots",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "updateWatchMode",
+        "signature": "updateWatchMode",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "createPanel",
+        "signature": "createPanel",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "dispose",
+        "signature": "dispose",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "getHtml",
+        "signature": "getHtml",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "handleMessage",
+        "signature": "handleMessage",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "markOnboardingComplete",
+        "signature": "markOnboardingComplete",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "saveConfig",
+        "signature": "saveConfig",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "setContext",
+        "signature": "setContext",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "show",
+        "signature": "show",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "applyDocDocsConfigPartial",
+        "signature": "applyDocDocsConfigPartial",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "getNonce",
+        "signature": "getNonce",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "registerDashboardProvider",
+        "signature": "registerDashboardProvider",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "dispose",
+        "signature": "dispose",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "vscode.commands.registerCommand('docdocs.openDashboard') callback",
+        "signature": "vscode.commands.registerCommand('docdocs.openDashboard') callback",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "registerOnboardingProvider",
+        "signature": "registerOnboardingProvider",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "dispose",
+        "signature": "dispose",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "vscode.commands.registerCommand('docdocs.openOnboarding') callback",
+        "signature": "vscode.commands.registerCommand('docdocs.openOnboarding') callback",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      }
+    ],
+    "classes": [
+      {
+        "name": "DashboardProvider",
+        "signature": "DashboardProvider",
+        "purpose": "",
+        "methods": [],
+        "properties": []
+      },
+      {
+        "name": "OnboardingProvider",
+        "signature": "OnboardingProvider",
+        "purpose": "",
+        "methods": [],
+        "properties": []
+      }
+    ],
+    "types": [
+      {
+        "name": "VIEW_TYPE",
+        "signature": "VIEW_TYPE",
+        "purpose": ""
+      },
+      {
+        "name": "panel",
+        "signature": "panel",
+        "purpose": ""
+      },
+      {
+        "name": "kind",
+        "signature": "kind",
+        "purpose": ""
+      },
+      {
+        "name": "config",
+        "signature": "config",
+        "purpose": ""
+      },
+      {
+        "name": "nonce",
+        "signature": "nonce",
+        "purpose": ""
+      },
+      {
+        "name": "scriptUri",
+        "signature": "scriptUri",
+        "purpose": ""
+      },
+      {
+        "name": "styleUri",
+        "signature": "styleUri",
+        "purpose": ""
+      },
+      {
+        "name": "cacheStats",
+        "signature": "cacheStats",
+        "purpose": ""
+      },
+      {
+        "name": "cfg",
+        "signature": "cfg",
+        "purpose": ""
+      },
+      {
+        "name": "uri",
+        "signature": "uri",
+        "purpose": ""
+      },
+      {
+        "name": "error",
+        "signature": "error",
+        "purpose": ""
+      },
+      {
+        "name": "errorMessage",
+        "signature": "errorMessage",
+        "purpose": ""
+      },
+      {
+        "name": "path",
+        "signature": "path",
+        "purpose": ""
+      },
+      {
+        "name": "initialData",
+        "signature": "initialData",
+        "purpose": ""
+      },
+      {
+        "name": "modelState",
+        "signature": "modelState",
+        "purpose": ""
+      },
+      {
+        "name": "theme",
+        "signature": "theme",
+        "purpose": ""
+      },
+      {
+        "name": "themeKind",
+        "signature": "themeKind",
+        "purpose": ""
+      },
+      {
+        "name": "state",
+        "signature": "state",
+        "purpose": ""
+      },
+      {
+        "name": "config",
+        "signature": "config",
+        "purpose": ""
+      },
+      {
+        "name": "section",
+        "signature": "section",
+        "purpose": ""
+      },
+      {
+        "name": "values",
+        "signature": "values",
+        "purpose": ""
+      },
+      {
+        "name": "writeEntries",
+        "signature": "writeEntries",
+        "purpose": ""
+      },
+      {
+        "name": "key",
+        "signature": "key",
+        "purpose": ""
+      },
+      {
+        "name": "value",
+        "signature": "value",
+        "purpose": ""
+      },
+      {
+        "name": "i",
+        "signature": "i",
+        "purpose": ""
+      },
+      {
+        "name": "possible",
+        "signature": "possible",
+        "purpose": ""
+      },
+      {
+        "name": "text",
+        "signature": "text",
+        "purpose": ""
+      },
+      {
+        "name": "provider",
+        "signature": "provider",
+        "purpose": ""
+      },
+      {
+        "name": "hasRunBefore",
+        "signature": "hasRunBefore",
+        "purpose": ""
+      },
+      {
+        "name": "provider",
+        "signature": "provider",
+        "purpose": ""
+      }
+    ]
+  },
+  "patterns": {
+    "commonUsage": [],
+    "antiPatterns": [],
+    "bestPractices": []
+  },
+  "dependencies": [],
+  "dependents": [],
+  "relatedModules": [],
+  "chunk": null,
+  "estimatedTokens": 2781
+}

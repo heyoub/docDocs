@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "files": {
+    "file:///home/heyoub/Documents/code/docDocs/src/ui/sidebarProvider.ts": {
+      "sourceHash": "385f219f8b6ba477d4154607801350043f8434c41c21d7031c99114c97823eaf",
+      "docHash": "9006a7705c95145e8ad595c417d0d9719ff2fb32cb4ef3630b20cc2b168b955e",
+      "lastGenerated": "2026-05-17T10:53:05.250Z"
+    },
+    "file:///home/heyoub/Documents/code/docDocs/src/ui/dashboardProvider.ts": {
+      "sourceHash": "c67aec6a6aa4a94f8acea9fa0191b20340299e7de48ad40513c123b47a79670d",
+      "docHash": "8263e88366f99c8ef8c876ecb6ee4ef39a5588d48206318b5636a3a278e4694a",
+      "lastGenerated": "2026-05-17T10:53:05.447Z"
+    }
+  }
+}

@@ -2,7 +2,7 @@
     "name": "docdocs",
     "displayName": "docDocs - Universal Documentation Generator",
     "description": "LSP-powered documentation generation with JSON Schema output, Markdown rendering, and AI-optimized context files",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "publisher": "heyoub",
     "license": "MIT",
     "repository": {

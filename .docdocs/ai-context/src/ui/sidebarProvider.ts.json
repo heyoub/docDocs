@@ -1,0 +1,308 @@
+{
+  "$schema": "https://github.com/Heyoub/docDocs#ai-context-schema",
+  "version": "1.0.0",
+  "module": "src/ui/sidebarProvider.ts",
+  "purpose": "Module providing variable, class, constructor, property, method, function definitions. Main exports: VIEW_ID, SidebarProvider, constructor.",
+  "publicAPI": {
+    "functions": [
+      {
+        "name": "getDefaultConfig",
+        "signature": "getDefaultConfig",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "getDefaultCoverage",
+        "signature": "getDefaultCoverage",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "getHtml",
+        "signature": "getHtml",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "handleMessage",
+        "signature": "handleMessage",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "postMessage",
+        "signature": "postMessage",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "resolveWebviewView",
+        "signature": "resolveWebviewView",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "webviewView.onDidChangeVisibility() callback",
+        "signature": "webviewView.onDidChangeVisibility() callback",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "saveConfig",
+        "signature": "saveConfig",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "sendInitialData",
+        "signature": "sendInitialData",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "updateConfig",
+        "signature": "updateConfig",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "updateCoverage",
+        "signature": "updateCoverage",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "updateFreshness",
+        "signature": "updateFreshness",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "updateRecentDocs",
+        "signature": "updateRecentDocs",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "updateWatchMode",
+        "signature": "updateWatchMode",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "getNonce",
+        "signature": "getNonce",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      },
+      {
+        "name": "registerSidebarProvider",
+        "signature": "registerSidebarProvider",
+        "purpose": "",
+        "parameters": [],
+        "returns": {
+          "type": "void",
+          "description": "No return value"
+        },
+        "example": null,
+        "relatedFunctions": []
+      }
+    ],
+    "classes": [
+      {
+        "name": "SidebarProvider",
+        "signature": "SidebarProvider",
+        "purpose": "",
+        "methods": [],
+        "properties": []
+      }
+    ],
+    "types": [
+      {
+        "name": "VIEW_ID",
+        "signature": "VIEW_ID",
+        "purpose": ""
+      },
+      {
+        "name": "config",
+        "signature": "config",
+        "purpose": ""
+      },
+      {
+        "name": "nonce",
+        "signature": "nonce",
+        "purpose": ""
+      },
+      {
+        "name": "scriptUri",
+        "signature": "scriptUri",
+        "purpose": ""
+      },
+      {
+        "name": "styleUri",
+        "signature": "styleUri",
+        "purpose": ""
+      },
+      {
+        "name": "uri",
+        "signature": "uri",
+        "purpose": ""
+      },
+      {
+        "name": "key",
+        "signature": "key",
+        "purpose": ""
+      },
+      {
+        "name": "section",
+        "signature": "section",
+        "purpose": ""
+      },
+      {
+        "name": "value",
+        "signature": "value",
+        "purpose": ""
+      },
+      {
+        "name": "values",
+        "signature": "values",
+        "purpose": ""
+      },
+      {
+        "name": "initialData",
+        "signature": "initialData",
+        "purpose": ""
+      },
+      {
+        "name": "theme",
+        "signature": "theme",
+        "purpose": ""
+      },
+      {
+        "name": "themeKind",
+        "signature": "themeKind",
+        "purpose": ""
+      },
+      {
+        "name": "i",
+        "signature": "i",
+        "purpose": ""
+      },
+      {
+        "name": "possible",
+        "signature": "possible",
+        "purpose": ""
+      },
+      {
+        "name": "text",
+        "signature": "text",
+        "purpose": ""
+      },
+      {
+        "name": "provider",
+        "signature": "provider",
+        "purpose": ""
+      }
+    ]
+  },
+  "patterns": {
+    "commonUsage": [],
+    "antiPatterns": [],
+    "bestPractices": []
+  },
+  "dependencies": [],
+  "dependents": [],
+  "relatedModules": [],
+  "chunk": null,
+  "estimatedTokens": 1098
+}
