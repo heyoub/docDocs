@@ -82,6 +82,13 @@ export function clearDocCache(): void {
 }
 
 /**
+ * Returns a cached module schema for tests and diagnostics.
+ */
+export function getDocCacheSchema(uri: FileURI): ModuleSchema | undefined {
+    return docCache.schemas.get(uri);
+}
+
+/**
  * Gets language ID from file extension (for live schema extraction).
  */
 function getLanguageId(uri: vscode.Uri): string {

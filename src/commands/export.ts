@@ -7,10 +7,11 @@
  */
 
 import * as vscode from 'vscode';
-import type { FileURI, FileExtraction, ModuleSchema } from '../types/index.js';
-import { extractSymbols, formatLSPError } from '../core/extractor/lsp.js';
+import type { FileURI, ModuleSchema } from '../types/index.js';
+import { formatExtractionError } from '../types/index.js';
+import { buildModuleSchema } from '../core/pipeline/buildModuleSchema.js';
+import { indexSchemaInProviders } from '../core/pipeline/indexGeneratedSchema.js';
 import { generateWorkspaceSchema } from '../core/schema/generator.js';
-import { tryGenerateModuleSchema } from '../core/schema/generator.js';
 import { loadConfigForCommand } from '../state/config.js';
 import { GenDocsDiagnosticsManager } from '../providers/diagnostics.js';
 
@@ -50,6 +51,33 @@ function getLanguageId(uri: vscode.Uri): string {
 async function writeFile(uri: vscode.Uri, content: string): Promise<void> {
     const encoder = new TextEncoder();
     await vscode.workspace.fs.writeFile(uri, encoder.encode(content));
+}
+
+interface ExportSkipCounts {
+    extraction: number;
+}
+
+/**
+ * Extracts a module schema for export and indexes it in provider caches.
+ */
+export async function addFileSchemaForExport(
+    file: vscode.Uri,
+    moduleSchemas: Map<string, ModuleSchema>,
+    counts: ExportSkipCounts
+): Promise<void> {
+    const result = await buildModuleSchema(file, getLanguageId(file));
+    if (!result.ok) {
+        counts.extraction++;
+        diagnosticsManager?.reportExtractionFailure(
+            file.toString() as FileURI,
+            formatExtractionError(result.error)
+        );
+        return;
+    }
+
+    const fileUri = file.toString() as FileURI;
+    moduleSchemas.set(result.value.path, result.value);
+    indexSchemaInProviders(fileUri, result.value);
 }
 
 // ============================================================
@@ -170,49 +198,17 @@ export async function exportLSIFCommand(): Promise<void> {
             );
 
             const moduleSchemas = new Map<string, ModuleSchema>();
-            let lspSkipped = 0;
-            let schemaSkipped = 0;
+            const skipCounts: ExportSkipCounts = { extraction: 0 };
 
             for (const file of files) {
                 if (token.isCancellationRequested) break;
                 progress.report({ message: `Processing ${file.fsPath}` });
-
-                const symbolsResult = await extractSymbols(file);
-                if (!symbolsResult.ok) {
-                    lspSkipped++;
-                    const fileUri = file.toString() as FileURI;
-                    diagnosticsManager?.reportExtractionFailure(
-                        fileUri,
-                        formatLSPError(symbolsResult.error)
-                    );
-                    continue;
-                }
-
-                const extraction: FileExtraction = {
-                    uri: file.toString() as FileURI,
-                    languageId: getLanguageId(file),
-                    symbols: symbolsResult.value,
-                    imports: [],
-                    exports: [],
-                    method: 'lsp',
-                    timestamp: Date.now(),
-                };
-                const schemaResult = tryGenerateModuleSchema(extraction);
-                if (!schemaResult.ok) {
-                    schemaSkipped++;
-                    diagnosticsManager?.reportExtractionFailure(
-                        extraction.uri,
-                        schemaResult.error
-                    );
-                    continue;
-                }
-                moduleSchemas.set(schemaResult.value.path, schemaResult.value);
+                await addFileSchemaForExport(file, moduleSchemas, skipCounts);
             }
 
-            const skipped = lspSkipped + schemaSkipped;
-            if (skipped > 0) {
+            if (skipCounts.extraction > 0) {
                 vscode.window.showWarningMessage(
-                    `LSIF export omitted ${skipped} file(s) (${lspSkipped} LSP, ${schemaSkipped} schema)`
+                    `LSIF export omitted ${skipCounts.extraction} file(s) (see Problems)`
                 );
             }
 
@@ -251,49 +247,17 @@ export async function exportOpenAPICommand(): Promise<void> {
             );
 
             const moduleSchemas = new Map<string, ModuleSchema>();
-            let lspSkipped = 0;
-            let schemaSkipped = 0;
+            const skipCounts: ExportSkipCounts = { extraction: 0 };
 
             for (const file of files) {
                 if (token.isCancellationRequested) break;
                 progress.report({ message: `Processing ${file.fsPath}` });
-
-                const symbolsResult = await extractSymbols(file);
-                if (!symbolsResult.ok) {
-                    lspSkipped++;
-                    const fileUri = file.toString() as FileURI;
-                    diagnosticsManager?.reportExtractionFailure(
-                        fileUri,
-                        formatLSPError(symbolsResult.error)
-                    );
-                    continue;
-                }
-
-                const extraction: FileExtraction = {
-                    uri: file.toString() as FileURI,
-                    languageId: getLanguageId(file),
-                    symbols: symbolsResult.value,
-                    imports: [],
-                    exports: [],
-                    method: 'lsp',
-                    timestamp: Date.now(),
-                };
-                const schemaResult = tryGenerateModuleSchema(extraction);
-                if (!schemaResult.ok) {
-                    schemaSkipped++;
-                    diagnosticsManager?.reportExtractionFailure(
-                        extraction.uri,
-                        schemaResult.error
-                    );
-                    continue;
-                }
-                moduleSchemas.set(schemaResult.value.path, schemaResult.value);
+                await addFileSchemaForExport(file, moduleSchemas, skipCounts);
             }
 
-            const skipped = lspSkipped + schemaSkipped;
-            if (skipped > 0) {
+            if (skipCounts.extraction > 0) {
                 vscode.window.showWarningMessage(
-                    `OpenAPI export omitted ${skipped} file(s) (${lspSkipped} LSP, ${schemaSkipped} schema)`
+                    `OpenAPI export omitted ${skipCounts.extraction} file(s) (see Problems)`
                 );
             }
 

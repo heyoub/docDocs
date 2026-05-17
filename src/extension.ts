@@ -37,6 +37,7 @@ import type { FreshnessError } from './state/freshness.js';
 import { restoreIndex as restoreSnapshots } from './state/snapshots.js';
 import { resolveWatchConfig } from './state/config.js';
 import { generateForFileFromWatch } from './commands/generate.js';
+import { isWatchExcludedPath, WATCH_FILE_GLOB } from './extension/watchPaths.js';
 
 // Providers (CodeLens diagnostic wiring)
 import { registerCodeLensDiagnostics } from './providers/codeLens.js';
@@ -187,12 +188,6 @@ export async function deactivate(): Promise<void> {
 // Watch Mode
 // ============================================================
 
-/** Glob for source files monitored by watch mode */
-const WATCH_FILE_GLOB = '**/*.{ts,js,py,rs,go,hs}';
-
-/** Exclude patterns for watch-triggered regeneration */
-const WATCH_EXCLUDE = /node_modules|\.docdocs|dist\/|build\//;
-
 interface WatchController extends vscode.Disposable {
     readonly isEnabled: () => boolean;
     syncFromConfig: () => Promise<void>;
@@ -231,7 +226,7 @@ function createWatchController(
 
     const scheduleRegenerate = (uri: vscode.Uri): void => {
         if (!enabled) return;
-        if (WATCH_EXCLUDE.test(uri.fsPath)) return;
+        if (isWatchExcludedPath(uri.fsPath)) return;
 
         const folder = vscode.workspace.getWorkspaceFolder(uri);
         if (!folder) return;

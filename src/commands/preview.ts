@@ -10,6 +10,7 @@ import * as vscode from 'vscode';
 import type { FileURI } from '../types/index.js';
 import { formatExtractionError } from '../types/index.js';
 import { buildModuleSchema } from '../core/pipeline/buildModuleSchema.js';
+import { indexSchemaInProviders } from '../core/pipeline/indexGeneratedSchema.js';
 import { PreviewPanelManager } from '../ui/webview/preview.js';
 
 // ============================================================
@@ -66,8 +67,9 @@ export async function previewDocumentationCommand(uri?: vscode.Uri): Promise<voi
     }
 
     const schema = schemaResult.value;
-
     const fileUri = targetUri.toString() as FileURI;
+    indexSchemaInProviders(fileUri, schema);
+
     const manager = getPreviewManager();
     manager.show(fileUri, schema);
 }
