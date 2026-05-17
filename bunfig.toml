@@ -1,2 +1,2 @@
 [test]
-preload = ["./test/__mocks__/setup.ts"]
+preload = ["./test/__mocks__/bun-setup.ts"]

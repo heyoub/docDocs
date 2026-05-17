@@ -1,10 +1,6 @@
 /**
- * Test setup file for Bun test runner.
- * Registers the vscode mock module before tests run.
+ * Vitest setup placeholder. VS Code is mocked via resolve.alias in vitest.config.ts.
+ * Bun tests use test/__mocks__/bun-setup.ts (see bunfig.toml).
  */
 
-import { mock } from 'bun:test';
-import * as vscode from './vscode.js';
-
-// Register the vscode mock
-mock.module('vscode', () => vscode);
+export {};

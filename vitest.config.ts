@@ -1,10 +1,15 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
+
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
     test: {
         globals: true,
         environment: 'node',
         include: ['test/**/*.test.ts'],
+        setupFiles: ['./test/__mocks__/setup.ts'],
         coverage: {
             provider: 'v8',
             reporter: ['text', 'json', 'html'],
@@ -19,7 +24,7 @@ export default defineConfig({
     },
     resolve: {
         alias: {
-            vscode: './test/__mocks__/vscode.ts',
+            vscode: path.resolve(rootDir, 'test/__mocks__/vscode.ts'),
         },
     },
 });
