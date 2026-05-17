@@ -4,10 +4,12 @@
  */
 
 import * as path from 'path';
+import type { Result } from '../../types/base.js';
 import type { Chunk, IndexerStatus, IndexerConfig, VectorFS, VectorGit } from './types.js';
 import { VectorDatabase } from './db.js';
 import { Embedder } from './embedder.js';
 import { Chunker } from './chunker.js';
+import { ok, err } from '../../utils/result.js';
 
 // =============================================================================
 // Config
@@ -88,16 +90,23 @@ export class Indexer {
     return this.status;
   }
 
-  async indexFile(filePath: string): Promise<void> {
-    const content = await this.fs.read(filePath);
-    const langId = this.fs.lang(filePath);
-    const mtime = await this.fs.mtime(filePath);
+  async indexFile(filePath: string): Promise<Result<void, string>> {
+    try {
+      const content = await this.fs.read(filePath);
+      const langId = this.fs.lang(filePath);
+      const mtime = await this.fs.mtime(filePath);
 
-    await this.db.deleteByPath(filePath);
-    const chunks = await this.chunkFile(filePath, content, langId);
-    const embedded = await this.embedder.embed(chunks);
-    await this.db.insert(embedded);
-    this.indexed.set(filePath, mtime);
+      await this.db.deleteByPath(filePath);
+      const chunks = await this.chunkFile(filePath, content, langId);
+      const embedded = await this.embedder.embed(chunks);
+      await this.db.insert(embedded);
+      this.indexed.set(filePath, mtime);
+      return ok(undefined);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      console.error(`[docDocs] Failed to index ${filePath}: ${message}`);
+      return err(message);
+    }
   }
 
   async removeFile(filePath: string): Promise<void> {
@@ -148,7 +157,9 @@ export class Indexer {
           this.indexed.set(f, await this.fs.mtime(f));
           this.update({ done: this.status.done + 1 });
         } catch (e) {
-          this.update({ errors: this.status.errors + 1, error: `Error indexing ${f}: ${e instanceof Error ? e.message : e}` });
+          const message = e instanceof Error ? e.message : String(e);
+          console.error(`[docDocs] Failed to index ${f}: ${message}`);
+          this.update({ errors: this.status.errors + 1, error: `Error indexing ${f}: ${message}` });
         }
       }
 
@@ -158,7 +169,9 @@ export class Indexer {
           await this.db.insert(embedded);
           this.update({ chunks: this.status.chunks + embedded.length });
         } catch (e) {
-          this.update({ errors: this.status.errors + 1, error: `Embedding batch failed: ${e instanceof Error ? e.message : e}` });
+          const message = e instanceof Error ? e.message : String(e);
+          console.error(`[docDocs] Embedding batch failed: ${message}`);
+          this.update({ errors: this.status.errors + 1, error: `Embedding batch failed: ${message}` });
         }
       }
 
@@ -229,7 +242,7 @@ export class IndexerWatcher {
     const files = [...this.pending];
     this.pending.clear();
     for (const f of files) {
-      try { await this.indexer.indexFile(f); } catch (e) { console.error(`Index failed for ${f}:`, e); }
+      await this.indexer.indexFile(f);
     }
     this.running = false;
     if (this.pending.size) this.schedule();
