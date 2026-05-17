@@ -1,17 +1,16 @@
 # Codebase Audit Guide
 
-This guide provides step-by-step instructions for auditing the docDocs codebase to identify and fix runtime issues. The codebase passes linting and tests but has silent runtime failures.
+This guide provides step-by-step instructions for auditing the docDocs codebase to identify and fix runtime issues.
+
+**Already addressed (verify and keep regression tests):** dashboard theme listener disposal, model `initPromise` gating, download progress throttling, debounced file-watcher UI refresh, watch debounce controller, tree-sitter WASM bundling, Zod config validation, LSP `Result` types, provider cache warming, CI E2E.
 
 ## Audit Priority Order
 
 | Priority | Category | Impact | Files Affected |
 |----------|----------|--------|----------------|
-| P0 | Event Listener Leaks | Memory leaks, crashes | dashboardProvider.ts |
-| P0 | Race Conditions | Silent failures | dashboardProvider.ts, downloadManager.ts |
 | P1 | Silent Error Swallowing | Hidden failures | 15+ files |
-| P1 | Progress Throttling | UI performance | downloadManager.ts |
-| P2 | File Watcher Debounce | Performance | extension.ts |
 | P2 | Promise Cleanup | Resource leaks | lspHelpers.ts |
+| P2 | ML worker reliability | Template-only prose in extension host | core/ml/smoother.ts |
 
 ---
 
@@ -38,13 +37,13 @@ grep -rn "window\.on" src/
 
 ### Critical Files to Review
 
-#### 1. `src/ui/dashboardProvider.ts:214`
+#### 1. `src/ui/dashboardProvider.ts` (theme listener)
 
-**Issue:** Theme change listener created without disposal
+**Status:** Fixed — listener stored in `themeDisposable` and disposed in `panel.onDidDispose`.
 
 ```typescript
-// CURRENT (BUG)
-vscode.window.onDidChangeActiveColorTheme((theme) => {
+// CURRENT (OK)
+this.themeDisposable = vscode.window.onDidChangeActiveColorTheme((theme) => {
     this.postMessage({ type: 'theme:update', payload: { kind } });
 });
 

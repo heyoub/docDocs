@@ -144,66 +144,16 @@ User Action → Command Handler → Core Logic → State Update → UI Notificat
 
 ## Known Issues & Pitfalls
 
-### CRITICAL: Event Listener Leak
-**File:** `src/ui/dashboardProvider.ts:214`
+### Resolved (recent hardening)
 
-```typescript
-// BUG: This listener is NOT disposed when panel closes
-vscode.window.onDidChangeActiveColorTheme((theme) => {
-    this.postMessage({ type: 'theme:update', payload: { kind } });
-});
-```
-
-**Impact:** Memory leak - listener persists after panel disposal.
-
-**Fix Required:** Store the disposable and add to panel's dispose handler:
-```typescript
-const themeDisposable = vscode.window.onDidChangeActiveColorTheme(...);
-panel.onDidDispose(() => {
-    themeDisposable.dispose();
-    this.panel = undefined;
-});
-```
-
-### CRITICAL: Race Condition in Model Init
-**File:** `src/ui/dashboardProvider.ts:75`
-
-```typescript
-// BUG: Fire-and-forget async - no wait, no error surface
-void this.initializeModelManagers();
-```
-
-**Impact:** Model-related commands can fail silently if called before init completes.
-
-**Symptoms:** "Model manager not initialized" errors, silent download failures.
-
-### WARNING: Progress Message Flooding
-**File:** `src/core/ml/downloadManager.ts:332-337`
-
-```typescript
-const path = await this.downloadManager.download(modelId, (progress) => {
-    this.postMessage({  // Called on EVERY chunk!
-        type: 'model:download:progress',
-        payload: progress,
-    });
-});
-```
-
-**Impact:** Hundreds of messages/second during downloads, UI jank.
-
-**Fix Required:** Throttle progress updates (e.g., max 10/second).
-
-### WARNING: File Watcher Without Debounce
-**File:** `src/extension.ts:207-220`
-
-```typescript
-fileWatcher.onDidChange(() => {
-    docExplorer.refresh();       // Called immediately on every change
-    updateFreshnessStatus(statusBar);
-});
-```
-
-**Impact:** Excessive refreshes on rapid file changes (e.g., git checkout).
+| Area | Status |
+|------|--------|
+| Dashboard theme listener leak | Fixed — `themeDisposable` disposed on panel close |
+| Model init race | Mitigated — `initPromise` awaited before model commands |
+| Download progress flooding | Fixed — throttled in `downloadManager.ts` |
+| File watcher UI refresh storm | Fixed — debounced explorer/freshness refresh; watch uses `WatchController` |
+| Tree-sitter WASM in extension host | Fixed — bundled under `wasm/` at build time |
+| Provider cache cold start | Fixed — preload on open/activate + `docdocs.warmProviderCache` |
 
 ### WARNING: Silent Error Swallowing
 
@@ -238,9 +188,10 @@ bun run build:mcp         # → dist/mcp/index.js (ESM executable)
 ### Testing
 
 ```bash
-bun run test              # Run all tests
+bun run test              # Vitest unit/property/smoke tests
 bun run test:watch        # Watch mode
 bun run test:coverage     # With coverage report
+bun run test:e2e          # Headless VS Code extension host (xvfb on Linux CI)
 ```
 
 Test organization:
@@ -250,6 +201,7 @@ Test organization:
 - `test/smoke/` - Core feature smoke tests
 - `test/fuzz/` - Robustness tests
 - `test/golden/` - Snapshot tests
+- `test/e2e/` - VS Code extension host smoke + watch regeneration tests
 
 ### Linting
 
