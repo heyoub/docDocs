@@ -1,5 +1,5 @@
 /**
- * @fileoverview Doc Explorer tree view for GenDocs extension.
+ * @fileoverview Doc Explorer tree view for docDocs extension.
  * Displays documented modules organized by directory with freshness status.
  *
  * @module ui/docExplorer
@@ -15,7 +15,7 @@ import { checkFreshness, type FreshnessStatus } from '../state/freshness.js';
 // ============================================================
 
 /** View ID for the Doc Explorer */
-const VIEW_ID = 'gendocs.docExplorer';
+const VIEW_ID = 'docdocsExplorer';
 
 // ============================================================
 // Types
@@ -282,7 +282,7 @@ export class DocExplorerProvider implements vscode.TreeDataProvider<DocTreeItem>
         treeItem.iconPath = this.getFreshnessIcon(item.freshness.status);
         treeItem.tooltip = `${item.name} - ${item.freshness.status}`;
         treeItem.command = {
-            command: 'gendocs.openDocumentation',
+            command: 'docdocs.openDocumentation',
             title: 'Open Documentation',
             arguments: [item.uri],
         };
@@ -342,15 +342,15 @@ export function registerDocExplorer(context: vscode.ExtensionContext): DocExplor
     });
 
     // Register filter commands
-    const filterAll = vscode.commands.registerCommand('gendocs.filterAll', () => {
+    const filterAll = vscode.commands.registerCommand('docdocs.filterAll', () => {
         setFilter('all');
         provider.refresh();
     });
-    const filterFresh = vscode.commands.registerCommand('gendocs.filterFresh', () => {
+    const filterFresh = vscode.commands.registerCommand('docdocs.filterFresh', () => {
         setFilter('fresh');
         provider.refresh();
     });
-    const filterStale = vscode.commands.registerCommand('gendocs.filterStale', () => {
+    const filterStale = vscode.commands.registerCommand('docdocs.filterStale', () => {
         setFilter('stale');
         provider.refresh();
     });

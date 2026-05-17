@@ -1,5 +1,5 @@
 /**
- * @fileoverview Documentation hardening checklist for GenDocs.
+ * @fileoverview Documentation hardening checklist for docDocs.
  * Performs structural completeness checks on documentation.
  *
  * @module core/analysis/hardening

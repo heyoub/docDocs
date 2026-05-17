@@ -1,5 +1,5 @@
 /**
- * @fileoverview JSON Schema validation for GenDocs schemas.
+ * @fileoverview JSON Schema validation for docDocs schemas.
  * Uses Ajv for JSON Schema draft-2020-12 validation.
  * Layer 1 - imports only from types/.
  *

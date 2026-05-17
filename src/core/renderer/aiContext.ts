@@ -1,5 +1,5 @@
 /**
- * @fileoverview AI Context renderer for GenDocs extension.
+ * @fileoverview AI Context renderer for docDocs extension.
  * Transforms JSON Schema documentation into AI-optimized context files.
  * Layer 2 - imports only from Layer 0 (types) and Layer 1 (utils).
  *
@@ -77,7 +77,7 @@ export interface AIContextFile {
 // Constants & Helpers
 // ============================================================
 
-const AI_CONTEXT_SCHEMA = 'https://gendocs.dev/schema/ai-context.json';
+const AI_CONTEXT_SCHEMA = 'https://github.com/Heyoub/docDocs#ai-context-schema';
 const AI_CONTEXT_VERSION = '1.0.0';
 const STRUCTURE_OVERHEAD_TOKENS = 200;
 

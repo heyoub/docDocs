@@ -1,5 +1,5 @@
 /**
- * @fileoverview Status bar integration for GenDocs extension.
+ * @fileoverview Status bar integration for docDocs extension.
  * Displays documentation freshness status in the VS Code status bar.
  *
  * @module ui/statusBar
@@ -13,10 +13,10 @@ import * as vscode from 'vscode';
 // ============================================================
 
 /** Configuration key for status bar visibility */
-const CONFIG_STATUSBAR_VISIBLE = 'gendocs.statusBar.visible';
+const CONFIG_STATUSBAR_VISIBLE = 'docdocs.statusBar.enabled';
 
 /** Configuration key for warning threshold */
-const CONFIG_WARNING_THRESHOLD = 'gendocs.statusBar.warningThreshold';
+const CONFIG_WARNING_THRESHOLD = 'docdocs.statusBar.freshnessThreshold';
 
 /** Default warning threshold (percentage) */
 const DEFAULT_WARNING_THRESHOLD = 80;
@@ -26,7 +26,7 @@ const DEFAULT_WARNING_THRESHOLD = 80;
 // ============================================================
 
 /**
- * Manages the GenDocs status bar item.
+ * Manages the docDocs status bar item.
  * Shows documentation freshness and watch mode status.
  */
 export class StatusBarManager {
@@ -40,7 +40,7 @@ export class StatusBarManager {
             vscode.StatusBarAlignment.Right,
             100
         );
-        this.item.command = 'gendocs.openDocExplorer';
+        this.item.command = 'docdocs.openExplorer';
         this.item.tooltip = 'Click to open Doc Explorer';
         this.update();
     }

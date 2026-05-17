@@ -1,5 +1,5 @@
 /**
- * @fileoverview Interactive graph webview for GenDocs extension.
+ * @fileoverview Interactive graph webview for docDocs extension.
  * Renders dependency and call graphs with D3.js visualization.
  *
  * @module ui/webview/graph
@@ -15,7 +15,7 @@ import { renderDependencyGraph, renderCallGraph } from '../../core/renderer/merm
 // ============================================================
 
 /** View type for the graph panel */
-const VIEW_TYPE = 'gendocs.graph';
+const VIEW_TYPE = 'docdocs.graph';
 
 // ============================================================
 // Types

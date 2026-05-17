@@ -1,5 +1,5 @@
 /**
- * @fileoverview Mermaid diagram renderer for GenDocs extension.
+ * @fileoverview Mermaid diagram renderer for docDocs extension.
  * Generates Mermaid flowcharts and sequence diagrams from graph data.
  * Layer 2 - imports only from Layer 0 (types) and Layer 1 (utils, templates).
  *

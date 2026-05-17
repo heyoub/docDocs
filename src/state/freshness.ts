@@ -42,7 +42,7 @@ export interface FreshnessEntry {
 
 /**
  * Persistent storage format for freshness data.
- * Stored in .gendocs/freshness.json
+ * Stored in .docdocs/freshness.json
  */
 export interface FreshnessStore {
     readonly version: number;
@@ -62,7 +62,7 @@ export type FreshnessError =
 // ============================================================
 
 const STORE_VERSION = 1;
-const FRESHNESS_FILE = '.gendocs/freshness.json';
+const FRESHNESS_FILE = '.docdocs/freshness.json';
 
 // ============================================================
 // State
@@ -300,7 +300,7 @@ export function setStore(newStore: FreshnessStore): void {
 
 /**
  * Persists the freshness store to disk.
- * Writes to .gendocs/freshness.json in the workspace root.
+ * Writes to .docdocs/freshness.json in the workspace root.
  *
  * @param workspaceUri - The workspace folder URI
  * @returns AsyncResult indicating success or failure
@@ -320,13 +320,13 @@ export async function persist(
             FRESHNESS_FILE
         );
 
-        // Ensure .gendocs directory exists
-        const gendocsDir = vscode.Uri.joinPath(
+        // Ensure .docdocs directory exists
+        const docdocsDir = vscode.Uri.joinPath(
             vscode.Uri.parse(workspaceUri),
-            '.gendocs'
+            '.docdocs'
         );
         try {
-            await vscode.workspace.fs.createDirectory(gendocsDir);
+            await vscode.workspace.fs.createDirectory(docdocsDir);
         } catch {
             // Directory may already exist, ignore error
         }
@@ -344,7 +344,7 @@ export async function persist(
 
 /**
  * Restores the freshness store from disk.
- * Reads from .gendocs/freshness.json in the workspace root.
+ * Reads from .docdocs/freshness.json in the workspace root.
  *
  * @param workspaceUri - The workspace folder URI
  * @returns AsyncResult indicating success or failure

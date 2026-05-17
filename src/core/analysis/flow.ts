@@ -1,5 +1,5 @@
 /**
- * @fileoverview Control flow matrix extraction for GenDocs.
+ * @fileoverview Control flow matrix extraction for docDocs.
  * Analyzes function complexity and decision trees.
  *
  * @module core/analysis/flow

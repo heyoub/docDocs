@@ -1,5 +1,5 @@
 /**
- * @fileoverview Documentation preview webview for GenDocs extension.
+ * @fileoverview Documentation preview webview for docDocs extension.
  * Renders documentation as formatted Markdown with live updates.
  *
  * @module ui/webview/preview
@@ -15,7 +15,7 @@ import { renderModule } from '../../core/renderer/markdown.js';
 // ============================================================
 
 /** View type for the preview panel */
-const VIEW_TYPE = 'gendocs.preview';
+const VIEW_TYPE = 'docdocs.preview';
 
 /** Debounce delay for auto-updates (ms) */
 const UPDATE_DEBOUNCE_MS = 500;

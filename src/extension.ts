@@ -1,5 +1,5 @@
 /**
- * @fileoverview GenDocs extension entry point.
+ * @fileoverview docDocs extension entry point.
  * Registers all commands, providers, and UI components.
  *
  * @module extension
@@ -38,7 +38,7 @@ import { restoreIndex as restoreSnapshots } from './state/snapshots.js';
 // ============================================================
 
 /**
- * Activates the GenDocs extension.
+ * Activates the docDocs extension.
  * Called when the extension is first activated.
  *
  * @param context - The VS Code extension context
@@ -129,13 +129,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 }
 
 /**
- * Deactivates the GenDocs extension.
+ * Deactivates the docDocs extension.
  * Called when the extension is deactivated.
  *
  * @returns void
  */
 export function deactivate(): void {
-    console.log('GenDocs extension deactivated');
+    console.log('docDocs extension deactivated');
 }
 
 // ============================================================

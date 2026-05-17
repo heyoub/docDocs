@@ -1,5 +1,5 @@
 /**
- * @fileoverview Markdown renderer for GenDocs extension.
+ * @fileoverview Markdown renderer for docDocs extension.
  * Transforms JSON Schema documentation into human-readable Markdown.
  * Layer 2 - imports only from Layer 0 (types) and Layer 1 (utils, templates).
  *
