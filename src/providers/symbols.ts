@@ -8,6 +8,10 @@
 
 import * as vscode from 'vscode';
 import type { FileURI, ModuleSchema, SymbolSchema, SymbolKind } from '../types/index.js';
+import { formatExtractionError } from '../types/index.js';
+import { buildModuleSchema } from '../core/pipeline/buildModuleSchema.js';
+import { indexSchemaInProviders } from '../core/pipeline/indexGeneratedSchema.js';
+import { getStore } from '../state/freshness.js';
 
 // ============================================================
 // Constants
@@ -38,6 +42,9 @@ let symbolCache: SymbolCache = {
     allSymbols: [],
 };
 
+/** In-flight schema loads keyed by file URI (dedupe parallel workspace symbol queries) */
+const schemaLoadInFlight = new Map<FileURI, Promise<void>>();
+
 /**
  * Updates the symbol cache with new schema data.
  */
@@ -54,11 +61,81 @@ export function clearSymbolCache(): void {
         schemas: new Map(),
         allSymbols: [],
     };
+    schemaLoadInFlight.clear();
 }
 
 /**
  * Rebuilds the flat symbol index from all cached schemas.
  */
+/**
+ * Gets language ID from file extension (for live schema extraction).
+ */
+function getLanguageId(uri: vscode.Uri): string {
+    const ext = uri.fsPath.split('.').pop() ?? '';
+    const langMap: Record<string, string> = {
+        ts: 'typescript', tsx: 'typescriptreact',
+        js: 'javascript', jsx: 'javascriptreact',
+        py: 'python', rs: 'rust', go: 'go', hs: 'haskell',
+    };
+    return langMap[ext] ?? ext;
+}
+
+/**
+ * Loads a module schema into provider caches when missing (freshness store entries only).
+ */
+async function loadSchemaIntoCache(
+    fileUri: FileURI,
+    token: vscode.CancellationToken
+): Promise<void> {
+    if (symbolCache.schemas.has(fileUri)) {
+        return;
+    }
+
+    if (token.isCancellationRequested) {
+        return;
+    }
+
+    const vscodeUri = vscode.Uri.parse(fileUri);
+    const folder = vscode.workspace.getWorkspaceFolder(vscodeUri);
+    if (!folder) {
+        return;
+    }
+
+    const result = await buildModuleSchema(vscodeUri, getLanguageId(vscodeUri));
+    if (!result.ok) {
+        console.warn(`[docDocs] Symbols: ${formatExtractionError(result.error)}`);
+        return;
+    }
+
+    indexSchemaInProviders(fileUri, result.value);
+}
+
+/**
+ * Ensures provider caches include schemas for files tracked in the freshness store.
+ */
+async function ensureSymbolCacheForDocumentedFiles(
+    token: vscode.CancellationToken
+): Promise<void> {
+    const documentedUris = Object.keys(getStore().files) as FileURI[];
+    const uncached = documentedUris.filter(uri => !symbolCache.schemas.has(uri));
+    if (uncached.length === 0) {
+        return;
+    }
+
+    await Promise.all(
+        uncached.map(async (fileUri) => {
+            let load = schemaLoadInFlight.get(fileUri);
+            if (!load) {
+                load = loadSchemaIntoCache(fileUri, token).finally(() => {
+                    schemaLoadInFlight.delete(fileUri);
+                });
+                schemaLoadInFlight.set(fileUri, load);
+            }
+            await load;
+        })
+    );
+}
+
 function rebuildSymbolIndex(): void {
     const symbols: SymbolSchema[] = [];
 
@@ -192,11 +269,18 @@ function createSymbolInformation(symbol: SymbolSchema): vscode.SymbolInformation
 export class GenDocsWorkspaceSymbolProvider implements vscode.WorkspaceSymbolProvider {
     /**
      * Provides workspace symbols matching the query.
+     * Lazily builds schemas for files in the freshness store on cache miss.
      */
-    provideWorkspaceSymbols(
+    async provideWorkspaceSymbols(
         query: string,
-        _token: vscode.CancellationToken
-    ): vscode.SymbolInformation[] {
+        token: vscode.CancellationToken
+    ): Promise<vscode.SymbolInformation[]> {
+        await ensureSymbolCacheForDocumentedFiles(token);
+
+        if (token.isCancellationRequested) {
+            return [];
+        }
+
         const matchingSymbols = symbolCache.allSymbols
             .filter(s => matchesQuery(s, query))
             .slice(0, 50); // Limit results
