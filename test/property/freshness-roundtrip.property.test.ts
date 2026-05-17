@@ -3,7 +3,7 @@
  * Verifies that FreshnessStore can be serialized and deserialized
  * without data loss.
  *
- * Feature: gendocs-extension, Property 24: Freshness Persistence Round-Trip
+ * Feature: docdocs-extension, Property 24: Freshness Persistence Round-Trip
  * Validates: Requirements 15.5
  *
  * @module test/property/freshness-roundtrip.property.test
@@ -138,7 +138,7 @@ function jsonRoundTrip(store: FreshnessStore): FreshnessStore {
 // Property Tests
 // ============================================================
 
-describe('Feature: gendocs-extension, Property 24: Freshness Persistence Round-Trip', () => {
+describe('Feature: docdocs-extension, Property 24: Freshness Persistence Round-Trip', () => {
     beforeEach(() => {
         clearStore();
     });

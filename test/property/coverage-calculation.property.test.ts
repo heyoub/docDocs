@@ -583,7 +583,7 @@ function calculateExpectedCoverage(modules: ReadonlyMap<string, ModuleSchema>): 
 // Property Tests
 // ============================================================
 
-describe('Feature: gendocs-extension, Property 21: Coverage Calculation Accuracy', () => {
+describe('Feature: docdocs-extension, Property 21: Coverage Calculation Accuracy', () => {
     /**
      * Property: Coverage percentage equals (documented/total) * 100, rounded to 2 decimals.
      *

@@ -380,7 +380,7 @@ function countTotalSymbols(symbols: readonly ExtractedSymbol[]): number {
 // Property Tests
 // ============================================================
 
-describe('Feature: gendocs-extension, Property 3: Schema Generation Completeness', () => {
+describe('Feature: docdocs-extension, Property 3: Schema Generation Completeness', () => {
     /**
      * Property: Every symbol in the FileExtraction appears in the ModuleSchema definitions.
      *

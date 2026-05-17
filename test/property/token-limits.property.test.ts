@@ -266,7 +266,7 @@ const arbitrarySmallMaxTokens: fc.Arbitrary<number> = fc.integer({ min: 50, max:
 // Property Tests
 // ============================================================
 
-describe('Feature: gendocs-extension, Property 8: AI Context Token Limits', () => {
+describe('Feature: docdocs-extension, Property 8: AI Context Token Limits', () => {
     /**
      * Property: Each AIContextFile has estimatedTokens <= maxTokens.
      *

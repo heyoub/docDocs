@@ -2,7 +2,7 @@
  * @fileoverview Property test for ML prose preservation.
  * Verifies that deterministic fields are unchanged after ML processing.
  *
- * Feature: gendocs-extension, Property 10: ML Prose Preservation
+ * Feature: docdocs-extension, Property 10: ML Prose Preservation
  * Validates: Requirements 5.5
  *
  * @module test/property/ml-preservation.property.test
@@ -67,7 +67,7 @@ const arbSymbolSchema: fc.Arbitrary<SymbolSchema> = fc.record({
 // Test Suite
 // ============================================================
 
-describe('Feature: gendocs-extension, Property 10: ML Prose Preservation', () => {
+describe('Feature: docdocs-extension, Property 10: ML Prose Preservation', () => {
     let smoother: MLProseSmoother;
 
     beforeAll(() => {

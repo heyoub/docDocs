@@ -400,7 +400,7 @@ function countTotalSymbols(symbols: readonly ExtractedSymbol[]): number {
 // Property Tests
 // ============================================================
 
-describe('Feature: gendocs-extension, Property 4: Schema Reference Validity', () => {
+describe('Feature: docdocs-extension, Property 4: Schema Reference Validity', () => {
     /**
      * Property: All $ref values in the symbols array resolve to valid definitions.
      *

@@ -272,7 +272,7 @@ function isValidCycle(graph: Graph<string>, cycle: string[]): boolean {
 // Property Tests
 // ============================================================
 
-describe('Feature: gendocs-extension, Property 17: Circular Dependency Detection', () => {
+describe('Feature: docdocs-extension, Property 17: Circular Dependency Detection', () => {
     /**
      * Property: DAGs (Directed Acyclic Graphs) should have no cycles detected.
      */
