@@ -220,6 +220,9 @@ export interface FileExtraction {
 
     /** Unix timestamp when extraction was performed */
     readonly timestamp: number;
+
+    /** Workspace-relative path used for schema output (e.g. src/foo.ts) */
+    readonly relativePath?: string;
 }
 
 // ============================================================

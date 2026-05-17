@@ -6,7 +6,7 @@
  * @module core/schema/generator
  */
 
-import type { FileURI, SchemaRef } from '../../types/base.js';
+import type { SchemaRef } from '../../types/base.js';
 import type {
     ExtractedSymbol,
     ExtractedParameter,
@@ -14,6 +14,7 @@ import type {
     FileExtraction,
 } from '../../types/extraction.js';
 import type { Result } from '../../types/base.js';
+import { resolveModulePath } from '../../utils/modulePath.js';
 import type {
     SymbolSchema,
     ModuleSchema,
@@ -94,15 +95,15 @@ function createModuleId(path: string): SchemaRef {
 }
 
 /**
- * Extracts the module path from a FileURI.
+ * Extracts the module path from a file extraction.
  * @param uri - The file URI
  * @returns The relative path portion of the URI
  */
-function extractPath(uri: FileURI): string {
-    // Remove file:// prefix if present
-    const path = uri.replace(/^file:\/\//, '');
-    // Return the path as-is for now (could be normalized further)
-    return path;
+function extractPath(extraction: FileExtraction): string {
+    if (extraction.relativePath) {
+        return extraction.relativePath.replace(/\\/g, '/');
+    }
+    return resolveModulePath(extraction.uri);
 }
 
 /**
@@ -386,7 +387,7 @@ function convertExports(exports: FileExtraction['exports']): readonly ExportSche
  * const moduleSchema = generateModuleSchema(fileExtraction);
  */
 export function generateModuleSchema(extraction: FileExtraction): ModuleSchema {
-    const path = extractPath(extraction.uri);
+    const path = extractPath(extraction);
     const $id = createModuleId(path);
 
     // Build definitions map
@@ -465,7 +466,7 @@ function calculateStatistics(
  */
 export function generateWorkspaceSchema(extractions: readonly FileExtraction[]): WorkspaceSchema {
     const modules: ModuleRef[] = extractions.map((extraction) => {
-        const path = extractPath(extraction.uri);
+        const path = extractPath(extraction);
         const documented = countDocumented(extraction.symbols);
 
         return {

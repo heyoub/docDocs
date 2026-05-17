@@ -230,7 +230,7 @@ function buildAdjacencyList(
  * external package imports are excluded.
  *
  * @param extractions - Array of file extractions to analyze
- * @returns A DependencyGraph with nodes and edges (circular edges not yet marked)
+ * @returns A DependencyGraph with nodes, edges, and circular edges marked
  *
  * @example
  * ```typescript
@@ -275,10 +275,10 @@ export function buildDependencyGraph(
     const mergedBuilders = mergeEdges(allEdgeBuilders);
     const edges = toDependencyEdges(mergedBuilders);
 
-    return {
+    return markCircularEdges({
         nodes,
         edges,
-    };
+    });
 }
 
 /**

@@ -17,6 +17,7 @@ import {
 } from '../extractor/treeSitter.js';
 import { tryGenerateModuleSchema } from '../schema/generator.js';
 import { ok, err } from '../../utils/result.js';
+import { resolveModulePath } from '../../utils/modulePath.js';
 
 export interface BuildModuleSchemaOptions {
     /** When true (default), retry with tree-sitter if LSP symbol extraction fails. */
@@ -92,6 +93,13 @@ export async function buildModuleSchema(
     const exportsResult = await extractExports(uri, symbols);
     const exports = exportsResult.ok ? exportsResult.value : [];
 
+    const getWorkspaceFolder = vscode.workspace.getWorkspaceFolder;
+    const folder =
+        typeof getWorkspaceFolder === 'function' ? getWorkspaceFolder(uri) : undefined;
+    const relativePath = folder
+        ? resolveModulePath(fileUri, folder.uri.fsPath)
+        : resolveModulePath(fileUri);
+
     const schemaResult = tryGenerateModuleSchema({
         uri: fileUri,
         languageId,
@@ -100,6 +108,7 @@ export async function buildModuleSchema(
         exports: [...exports],
         method,
         timestamp: Date.now(),
+        relativePath,
     });
 
     if (!schemaResult.ok) {
