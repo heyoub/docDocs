@@ -164,6 +164,12 @@ export function registerSchemaCacheWarmer(
             console.log(`[docDocs] Warmed provider cache for ${count} tracked file(s)`);
         }
         await warmer.warmOpenEditors();
+        if (config().get<boolean>('completion.warmWorkspaceOnActivate', false)) {
+            const sample = await warmer.warmWorkspaceSample();
+            if (sample > 0) {
+                console.log(`[docDocs] Warmed provider cache for ${sample} workspace file(s)`);
+            }
+        }
     };
 
     void onActivateWarm();
@@ -174,8 +180,9 @@ export function registerSchemaCacheWarmer(
         vscode.commands.registerCommand('docdocs.warmProviderCache', async () => {
             const tracked = await warmer.warmTrackedFiles();
             const editors = await warmer.warmOpenEditors();
+            const workspace = await warmer.warmWorkspaceSample();
             void vscode.window.showInformationMessage(
-                `docDocs: warmed cache (${tracked} tracked, ${editors} open editor(s))`
+                `docDocs: warmed cache (${tracked} tracked, ${editors} open, ${workspace} workspace sample)`
             );
         })
     );
