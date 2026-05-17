@@ -287,7 +287,9 @@ function getGitInfo(filePath: string, projectRoot: string): {
       commitsSince: parseInt(commitCount, 10) || 0,
       authors: authorsOutput.split('\n').filter(a => a),
     };
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[docDocs] staleness: git info unavailable for ${filePath}: ${message}`);
     return { authors: [] };
   }
 }
@@ -303,7 +305,9 @@ function getFileContentAtCommit(
       `git show ${commit}:"${relativePath}"`,
       { cwd: projectRoot, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
     );
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[docDocs] staleness: could not read ${filePath} at ${commit}: ${message}`);
     return null;
   }
 }
@@ -349,8 +353,9 @@ export async function analyzeStaleness(
       if (commitHash) {
         oldContent = getFileContentAtCommit(filePath, projectRoot, commitHash) ?? undefined;
       }
-    } catch {
-      // Git not available or file not tracked
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[docDocs] staleness: could not resolve git commit for ${filePath}: ${message}`);
     }
   }
 
@@ -467,8 +472,9 @@ export async function analyzeStalenessReport(
     try {
       const report = await analyzeStaleness(absolutePath, projectRoot, lastDocUpdate);
       results.set(absolutePath, report);
-    } catch {
-      // Skip files that can't be analyzed
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[docDocs] staleness: skipping ${file}: ${message}`);
     }
   }
 

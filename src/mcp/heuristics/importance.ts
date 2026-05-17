@@ -263,7 +263,9 @@ export async function analyzeImportance(
     let content: string;
     try {
       content = fs.readFileSync(absolutePath, 'utf-8');
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[docDocs] importance: skipping ${absolutePath}: ${message}`);
       continue;
     }
 

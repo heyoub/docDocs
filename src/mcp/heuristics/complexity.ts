@@ -480,8 +480,9 @@ export async function analyzeComplexityBatch(
     try {
       const metrics = await analyzeComplexity(file);
       results.set(file, metrics);
-    } catch {
-      // Skip files that can't be analyzed
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[docDocs] complexity: skipping ${file}: ${message}`);
     }
   }
 
