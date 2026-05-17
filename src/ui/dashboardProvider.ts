@@ -27,6 +27,7 @@ import { MODEL_REGISTRY } from '../core/ml/registry.js';
 import { detectSystem, recommendModels, suggestCacheLimit, mergeWebGPUCapabilities } from '../core/ml/systemDetector.js';
 import { ModelCacheManager, createCacheManager } from '../core/ml/cacheManager.js';
 import { ModelDownloadManager, createDownloadManager } from '../core/ml/downloadManager.js';
+import { hasOpenRouterApiKey } from '../state/openRouterSecrets.js';
 
 // ============================================================
 // Constants
@@ -322,7 +323,41 @@ export class DashboardProvider {
       case 'model:select':
         await this.handleModelSelect(message.payload.modelId);
         break;
+
+      case 'openRouter:pickModel':
+        await vscode.commands.executeCommand('docdocs.pickOpenRouterModel');
+        await this.refreshConfigAndOpenRouterState();
+        break;
+
+      case 'openRouter:configureKey':
+        await vscode.commands.executeCommand('docdocs.configureOpenRouterApiKey');
+        await this.sendOpenRouterState();
+        break;
+
+      case 'openRouter:setModel': {
+        const cfg = vscode.workspace.getConfiguration('docdocs');
+        await cfg.update(
+          'ml.openRouter.model',
+          message.payload.model,
+          vscode.ConfigurationTarget.Workspace
+        );
+        await this.refreshConfigAndOpenRouterState();
+        break;
+      }
     }
+  }
+
+  private async refreshConfigAndOpenRouterState(): Promise<void> {
+    this.config = this.getDefaultConfig();
+    this.postMessage({ type: 'config:update', payload: this.config });
+    await this.sendOpenRouterState();
+  }
+
+  private async sendOpenRouterState(): Promise<void> {
+    this.postMessage({
+      type: 'openRouter:state',
+      payload: { hasApiKey: await hasOpenRouterApiKey() },
+    });
   }
 
   /**
@@ -470,6 +505,7 @@ export class DashboardProvider {
       watchMode: this.watchMode,
       theme: { kind: theme },
       models: modelState,
+      openRouter: { hasApiKey: await hasOpenRouterApiKey() },
     };
 
     this.postMessage({ type: 'initialData', payload: initialData });
@@ -479,19 +515,12 @@ export class DashboardProvider {
    * Saves configuration to VS Code settings.
    */
   private async saveConfig(partial: Partial<DocDocsConfig>): Promise<void> {
-    const config = vscode.workspace.getConfiguration('docdocs');
-
-    for (const [section, values] of Object.entries(partial)) {
-      if (values && typeof values === 'object') {
-        for (const [key, value] of Object.entries(values as Record<string, unknown>)) {
-          await config.update(`${section}.${key}`, value, vscode.ConfigurationTarget.Workspace);
-        }
-      }
-    }
+    await applyDocDocsConfigPartial(partial);
 
     // Refresh config and notify webview
     this.config = this.getDefaultConfig();
     this.postMessage({ type: 'config:update', payload: this.config });
+    await this.sendOpenRouterState();
   }
 
   /**
@@ -507,6 +536,10 @@ export class DashboardProvider {
       ml: {
         enabled: config.get('ml.enabled', false),
         model: config.get('ml.model', 'tiiuae/Falcon-H1-Tiny-Coder-90M'),
+        openRouter: {
+          enabled: config.get('ml.openRouter.enabled', true),
+          model: config.get('ml.openRouter.model', 'openrouter/auto'),
+        },
       },
       codeLens: {
         enabled: config.get('codeLens.enabled', true),
@@ -583,9 +616,14 @@ export class DashboardProvider {
 export class OnboardingProvider {
   private panel: vscode.WebviewPanel | undefined;
   private extensionUri: vscode.Uri;
+  private context: vscode.ExtensionContext | null = null;
 
   constructor(extensionUri: vscode.Uri) {
     this.extensionUri = extensionUri;
+  }
+
+  setContext(context: vscode.ExtensionContext): void {
+    this.context = context;
   }
 
   /**
@@ -654,22 +692,23 @@ export class OnboardingProvider {
       case 'config:save':
         await this.saveConfig(message.payload);
         break;
+
+      case 'onboarding:complete':
+        await this.markOnboardingComplete();
+        break;
     }
+  }
+
+  private async markOnboardingComplete(): Promise<void> {
+    if (!this.context) return;
+    await this.context.workspaceState.update('docdocs.onboarding.completed', true);
   }
 
   /**
    * Saves configuration to VS Code settings.
    */
   private async saveConfig(partial: Partial<DocDocsConfig>): Promise<void> {
-    const config = vscode.workspace.getConfiguration('docdocs');
-
-    for (const [section, values] of Object.entries(partial)) {
-      if (values && typeof values === 'object') {
-        for (const [key, value] of Object.entries(values as Record<string, unknown>)) {
-          await config.update(`${section}.${key}`, value, vscode.ConfigurationTarget.Workspace);
-        }
-      }
-    }
+    await applyDocDocsConfigPartial(partial);
   }
 
   /**
@@ -709,6 +748,28 @@ export class OnboardingProvider {
 /**
  * Generates a random nonce for CSP.
  */
+/** Writes partial DocDocs webview config to workspace settings (supports nested keys). */
+async function applyDocDocsConfigPartial(partial: Partial<DocDocsConfig>): Promise<void> {
+  const config = vscode.workspace.getConfiguration('docdocs');
+
+  const writeEntries = async (prefix: string, values: Record<string, unknown>): Promise<void> => {
+    for (const [key, value] of Object.entries(values)) {
+      const path = prefix ? `${prefix}.${key}` : key;
+      if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+        await writeEntries(path, value as Record<string, unknown>);
+      } else {
+        await config.update(path, value, vscode.ConfigurationTarget.Workspace);
+      }
+    }
+  };
+
+  for (const [section, values] of Object.entries(partial)) {
+    if (values && typeof values === 'object') {
+      await writeEntries(section, values as Record<string, unknown>);
+    }
+  }
+}
+
 function getNonce(): string {
   let text = '';
   const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -750,6 +811,7 @@ export function registerOnboardingProvider(
   context: vscode.ExtensionContext
 ): OnboardingProvider {
   const provider = new OnboardingProvider(context.extensionUri);
+  provider.setContext(context);
 
   // Register the open onboarding command
   context.subscriptions.push(

@@ -14,6 +14,10 @@ export interface DocDocsConfig {
   ml: {
     enabled: boolean;
     model: string;
+    openRouter: {
+      enabled: boolean;
+      model: string;
+    };
   };
   codeLens: {
     enabled: boolean;
@@ -333,6 +337,7 @@ export type ToWebview =
   | { type: 'model:download:complete'; payload: { modelId: string; path: string } }
   | { type: 'model:download:error'; payload: { modelId: string; error: string } }
   | { type: 'model:selected'; payload: { modelId: string | null } }
+  | { type: 'openRouter:state'; payload: { hasApiKey: boolean } }
   // Vector search messages
   | { type: 'vector:search:results'; payload: VectorSearchResponse }
   | { type: 'vector:indexer:status'; payload: IndexerStatus }
@@ -361,6 +366,10 @@ export type ToExtension =
   | { type: 'model:download:cancel'; payload: { modelId: string } }
   | { type: 'model:delete'; payload: { modelId: string } }
   | { type: 'model:select'; payload: { modelId: string } }
+  | { type: 'openRouter:pickModel' }
+  | { type: 'openRouter:configureKey' }
+  | { type: 'openRouter:setModel'; payload: { model: string } }
+  | { type: 'onboarding:complete' }
   // Vector search messages
   | { type: 'vector:search'; payload: VectorSearchOptions }
   | { type: 'vector:indexer:start' }
@@ -384,4 +393,5 @@ export interface InitialData {
   watchMode: { enabled: boolean; files: string[] };
   theme: { kind: 'light' | 'dark' | 'high-contrast' };
   models: ModelManagerState;
+  openRouter: { hasApiKey: boolean };
 }

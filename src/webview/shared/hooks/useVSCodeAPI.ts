@@ -17,6 +17,7 @@ import type { ToWebview, DocDocsConfig, ToExtension } from '../../../protocol';
 import {
   configAtom,
   configLoadingAtom,
+  openRouterHasApiKeyAtom,
   freshnessAtom,
   freshnessHistoryAtom,
   coverageAtom,
@@ -43,6 +44,7 @@ import {
 export function useVSCodeMessaging(): void {
   const setConfig = useSetAtom(configAtom);
   const setConfigLoading = useSetAtom(configLoadingAtom);
+  const setOpenRouterHasApiKey = useSetAtom(openRouterHasApiKeyAtom);
   const setFreshness = useSetAtom(freshnessAtom);
   const setFreshnessHistory = useSetAtom(freshnessHistoryAtom);
   const setCoverage = useSetAtom(coverageAtom);
@@ -75,6 +77,7 @@ export function useVSCodeMessaging(): void {
           setWatchMode(message.payload.watchMode);
           setTheme(message.payload.theme.kind);
           setConfigLoading(false);
+          setOpenRouterHasApiKey(message.payload.openRouter.hasApiKey);
           // Handle model state from initial data
           if (message.payload.models) {
             setModelRegistry(message.payload.models.registry);
@@ -188,6 +191,9 @@ export function useVSCodeMessaging(): void {
         case 'model:selected':
           setSelectedModelId(message.payload.modelId);
           break;
+        case 'openRouter:state':
+          setOpenRouterHasApiKey(message.payload.hasApiKey);
+          break;
       }
     };
 
@@ -203,6 +209,7 @@ export function useVSCodeMessaging(): void {
   }, [
     setConfig,
     setConfigLoading,
+    setOpenRouterHasApiKey,
     setFreshness,
     setFreshnessHistory,
     setCoverage,

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAtomValue } from 'jotai';
-import { Save, RotateCcw } from 'lucide-react';
-import { configAtom, configLoadingAtom } from '../../shared/store';
+import { Save, RotateCcw, Cloud } from 'lucide-react';
+import { configAtom, configLoadingAtom, openRouterHasApiKeyAtom } from '../../shared/store';
 import { useSaveConfig, usePostMessage } from '../../shared/hooks';
 import { Button } from '../../shared/components/atoms/Button';
 import { Switch } from '../../shared/components/atoms/Switch';
@@ -20,6 +20,10 @@ const DEFAULT_CONFIG: DocDocsConfig = {
   ml: {
     enabled: false,
     model: 'tiiuae/Falcon-H1-Tiny-Coder-90M',
+    openRouter: {
+      enabled: true,
+      model: 'openrouter/auto',
+    },
   },
   codeLens: {
     enabled: true,
@@ -152,6 +156,99 @@ function OutputSettings() {
   );
 }
 
+function OpenRouterCloudSettings() {
+  const config = useAtomValue(configAtom);
+  const hasApiKey = useAtomValue(openRouterHasApiKeyAtom);
+  const saveConfig = useSaveConfig();
+  const postMessage = usePostMessage();
+  const [enabled, setEnabled] = useState(config?.ml.openRouter.enabled ?? true);
+  const [model, setModel] = useState(config?.ml.openRouter.model ?? 'openrouter/auto');
+
+  useEffect(() => {
+    if (config) {
+      setEnabled(config.ml.openRouter.enabled);
+      setModel(config.ml.openRouter.model);
+    }
+  }, [config]);
+
+  const handleToggle = (checked: boolean) => {
+    setEnabled(checked);
+    saveConfig({
+      ml: {
+        enabled: config?.ml.enabled ?? false,
+        model: config?.ml.model ?? '',
+        openRouter: { enabled: checked, model },
+      },
+    });
+  };
+
+  const handleSaveModel = () => {
+    saveConfig({
+      ml: {
+        enabled: config?.ml.enabled ?? false,
+        model: config?.ml.model ?? '',
+        openRouter: { enabled, model },
+      },
+    });
+  };
+
+  return (
+    <div className="rounded-lg border border-border p-4 space-y-4 mt-4">
+      <div className="flex items-start gap-3">
+        <Cloud className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+        <div>
+          <p className="text-sm font-medium">OpenRouter cloud fallback</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            When local ML workers are unavailable in the extension host, docDocs
+            can generate prose via OpenRouter using your API key.
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center justify-between">
+        <p className="text-sm">Enable cloud fallback</p>
+        <Switch checked={enabled} onCheckedChange={handleToggle} disabled={!hasApiKey} />
+      </div>
+      {!hasApiKey ? (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => postMessage({ type: 'openRouter:configureKey' })}
+        >
+          Configure OpenRouter API Key
+        </Button>
+      ) : (
+        <div className="space-y-3">
+          <FormField
+            label="OpenRouter model"
+            description="Workspace setting docdocs.ml.openRouter.model"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={handleSaveModel}>
+              Save model
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => postMessage({ type: 'openRouter:pickModel' })}
+            >
+              Pick from catalog…
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => postMessage({ type: 'openRouter:configureKey' })}
+            >
+              Update API key
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MLSettings() {
   const config = useAtomValue(configAtom);
   const saveConfig = useSaveConfig();
@@ -166,7 +263,11 @@ function MLSettings() {
   const handleToggle = (checked: boolean) => {
     setEnabled(checked);
     saveConfig({
-      ml: { enabled: checked, model: config?.ml.model ?? '' },
+      ml: {
+        enabled: checked,
+        model: config?.ml.model ?? '',
+        openRouter: config?.ml.openRouter ?? { enabled: true, model: 'openrouter/auto' },
+      },
     });
   };
 
@@ -186,6 +287,7 @@ function MLSettings() {
         <Switch checked={enabled} onCheckedChange={handleToggle} />
       </div>
       {enabled && <ModelManager />}
+      <OpenRouterCloudSettings />
     </ConfigSection>
   );
 }

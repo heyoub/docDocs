@@ -7,8 +7,9 @@ import {
   ArrowLeft,
   Check,
   Folder,
+  Cloud,
 } from 'lucide-react';
-import { useVSCodeMessaging, useSaveConfig, useVSCodeCommand, useThemeClass } from '../shared/hooks';
+import { useVSCodeMessaging, useSaveConfig, useVSCodeCommand, useThemeClass, usePostMessage } from '../shared/hooks';
 import { Button } from '../shared/components/atoms/Button';
 import { Input } from '../shared/components/atoms/Input';
 import { Checkbox } from '../shared/components/atoms/Checkbox';
@@ -17,9 +18,9 @@ import { Progress } from '../shared/components/atoms/Progress';
 import { TooltipProvider } from '../shared/components/atoms/Tooltip';
 import { cn } from '../shared/lib/utils';
 
-type Step = 'welcome' | 'output' | 'formats' | 'features' | 'complete';
+type Step = 'welcome' | 'openrouter' | 'output' | 'formats' | 'features' | 'complete';
 
-const steps: Step[] = ['welcome', 'output', 'formats', 'features', 'complete'];
+const steps: Step[] = ['welcome', 'openrouter', 'output', 'formats', 'features', 'complete'];
 
 interface WizardState {
   outputDirectory: string;
@@ -45,6 +46,61 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
         Get Started
         <ArrowRight className="h-4 w-4 ml-2" />
       </Button>
+    </div>
+  );
+}
+
+function OpenRouterStep({
+  onNext,
+  onBack,
+}: {
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  const runCommand = useVSCodeCommand();
+
+  return (
+    <div className="max-w-md mx-auto">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+          <Cloud className="h-5 w-5 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold">Cloud prose fallback</h2>
+          <p className="text-sm text-muted-foreground">
+            Optional OpenRouter API key for when local ML is unavailable
+          </p>
+        </div>
+      </div>
+
+      <p className="text-sm text-muted-foreground mb-6">
+        In the VS Code extension host, Web Workers may be unavailable. With an
+        OpenRouter key, docDocs can still generate summaries and descriptions
+        via cloud models (local Hugging Face models are tried first).
+      </p>
+
+      <div className="flex flex-col gap-3 mb-8">
+        <Button
+          onClick={() => runCommand('docdocs.configureOpenRouterApiKey')}
+          className="w-full"
+        >
+          Add OpenRouter API Key
+        </Button>
+        <Button variant="ghost" onClick={onNext} className="w-full">
+          Configure later
+        </Button>
+      </div>
+
+      <div className="flex justify-between">
+        <Button variant="ghost" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        <Button onClick={onNext}>
+          Continue
+          <ArrowRight className="h-4 w-4 ml-2" />
+        </Button>
+      </div>
     </div>
   );
 }
@@ -389,6 +445,7 @@ export default function App() {
   useThemeClass();
   const saveConfig = useSaveConfig();
   const runCommand = useVSCodeCommand();
+  const postMessage = usePostMessage();
 
   const [currentStep, setCurrentStep] = useState<Step>('welcome');
   const [state, setState] = useState<WizardState>({
@@ -426,6 +483,7 @@ export default function App() {
       ml: {
         enabled: state.enableML,
         model: 'tiiuae/Falcon-H1-Tiny-Coder-90M',
+        openRouter: { enabled: true, model: 'openrouter/auto' },
       },
       watch: {
         enabled: state.enableWatch,
@@ -435,7 +493,7 @@ export default function App() {
         enabled: state.enableCodeLens,
       },
     });
-    // Open dashboard
+    postMessage({ type: 'onboarding:complete' });
     runCommand('docdocs.openDashboard');
   };
 
@@ -448,6 +506,9 @@ export default function App() {
           )}
 
           {currentStep === 'welcome' && <WelcomeStep onNext={goNext} />}
+          {currentStep === 'openrouter' && (
+            <OpenRouterStep onNext={goNext} onBack={goBack} />
+          )}
           {currentStep === 'output' && (
             <OutputStep
               state={state}

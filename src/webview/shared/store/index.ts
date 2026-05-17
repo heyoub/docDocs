@@ -21,6 +21,8 @@ export const configAtom = atom<DocDocsConfig | null>(null);
 
 export const configLoadingAtom = atom(true);
 
+export const openRouterHasApiKeyAtom = atom(false);
+
 // ============================================================================
 // Freshness State
 // ============================================================================

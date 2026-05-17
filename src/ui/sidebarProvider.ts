@@ -17,6 +17,7 @@ import type {
   RecentDoc,
   Snapshot,
 } from '../protocol.js';
+import { hasOpenRouterApiKey } from '../state/openRouterSecrets.js';
 
 // ============================================================
 // Constants
@@ -132,11 +133,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   private async handleMessage(message: ToExtension): Promise<void> {
     switch (message.type) {
       case 'ready':
-        this.sendInitialData();
-        break;
-
       case 'request:initialData':
-        this.sendInitialData();
+        await this.sendInitialData();
         break;
 
       case 'command:run':
@@ -160,7 +158,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   /**
    * Sends initial data bundle to the webview.
    */
-  private sendInitialData(): void {
+  private async sendInitialData(): Promise<void> {
     const themeKind = vscode.window.activeColorTheme.kind;
     const theme =
       themeKind === vscode.ColorThemeKind.Light
@@ -189,6 +187,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         cacheSize: 0,
         cacheLimit: 5 * 1024 * 1024 * 1024,
       },
+      openRouter: { hasApiKey: await hasOpenRouterApiKey() },
     };
 
     this.postMessage({ type: 'initialData', payload: initialData });
@@ -222,6 +221,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       ml: {
         enabled: config.get('ml.enabled', false),
         model: config.get('ml.model', 'tiiuae/Falcon-H1-Tiny-Coder-90M'),
+        openRouter: {
+          enabled: config.get('ml.openRouter.enabled', true),
+          model: config.get('ml.openRouter.model', 'openrouter/auto'),
+        },
       },
       codeLens: {
         enabled: config.get('codeLens.enabled', true),
