@@ -1,5 +1,5 @@
 /**
- * @fileoverview Generate documentation command for GenDocs extension.
+ * @fileoverview Generate documentation command for docDocs extension.
  * Orchestrates the full documentation generation pipeline.
  *
  * @module commands/generate
@@ -7,13 +7,23 @@
  */
 
 import * as vscode from 'vscode';
-import type { FileURI, FileExtraction, ModuleSchema, GenDocsConfig } from '../types/index.js';
-import { extractSymbols } from '../core/extractor/lsp.js';
-import { extractExports } from '../core/extractor/exports.js';
-import { generateModuleSchema } from '../core/schema/generator.js';
+import { exec } from 'node:child_process';
+import type {
+    FileURI,
+    ModuleSchema,
+    GenDocsConfig,
+    AsyncResult,
+    ExtractionError,
+} from '../types/index.js';
+import { formatExtractionError } from '../types/index.js';
+import { buildModuleSchema } from '../core/pipeline/buildModuleSchema.js';
 import { renderModule } from '../core/renderer/markdown.js';
 import { renderAIContext } from '../core/renderer/aiContext.js';
-import { loadConfig, getDefault } from '../state/config.js';
+import {
+    loadConfigForCommand,
+    loadConfigForValidationGates,
+    formatConfigError,
+} from '../state/config.js';
 import { recordGeneration } from '../state/freshness.js';
 import { contentHash } from '../utils/hash.js';
 
@@ -31,9 +41,12 @@ async function runValidationGates(
     folder: vscode.WorkspaceFolder,
     progress: vscode.Progress<{ readonly message: string }>
 ): Promise<{ readonly passed: boolean; readonly error?: string }> {
-    const configResult = await loadConfig(folder);
+    const configResult = await loadConfigForValidationGates(folder);
     if (!configResult.ok) {
-        return { passed: true }; // No config, skip gates
+        return {
+            passed: false,
+            error: `Cannot run validation gates: ${formatConfigError(configResult.error)}`,
+        };
     }
 
     const config = configResult.value;
@@ -90,8 +103,7 @@ async function runCommand(
     cwd: string
 ): Promise<{ readonly success: boolean; readonly error?: string }> {
     return new Promise((resolve) => {
-        const cp = require('child_process');
-        cp.exec(command, { cwd }, (error: Error | null) => {
+        exec(command, { cwd }, (error: Error | null) => {
             resolve(error ? { success: false, error: error.message } : { success: true });
         });
     });
@@ -101,32 +113,29 @@ async function runCommand(
 // File Generation
 // ============================================================
 
+/** Maximum per-file errors shown in folder/workspace batch warnings */
+const MAX_BATCH_ERRORS_SHOWN = 3;
+
 /**
  * Generates documentation for a single file.
  * @param uri - The file URI to generate documentation for
- * @returns The generated module schema or null if extraction failed
+ * @returns The generated module schema or an extraction error
  */
-async function generateForFile(uri: vscode.Uri): Promise<ModuleSchema | null> {
-    const symbolsResult = await extractSymbols(uri);
-    if (!symbolsResult.ok) {
-        return null;
-    }
+async function generateForFile(uri: vscode.Uri): AsyncResult<ModuleSchema, ExtractionError> {
+    return buildModuleSchema(uri, getLanguageId(uri));
+}
 
-    // Extract exports using LSP semantic tokens and text analysis
-    const exportsResult = await extractExports(uri, symbolsResult.value);
-    const exports = exportsResult.ok ? exportsResult.value : [];
-
-    const extraction: FileExtraction = {
-        uri: uri.toString() as FileURI,
-        languageId: getLanguageId(uri),
-        symbols: symbolsResult.value,
-        imports: [],
-        exports: [...exports],
-        method: 'lsp',
-        timestamp: Date.now(),
-    };
-
-    return generateModuleSchema(extraction);
+/**
+ * Reports aggregated extraction failures after batch generation.
+ */
+function reportBatchFailures(failed: number, errors: readonly ExtractionError[]): void {
+    const shown = errors.slice(0, MAX_BATCH_ERRORS_SHOWN).map(formatExtractionError);
+    const remainder = failed - shown.length;
+    const suffix = remainder > 0 ? ` (and ${remainder} more)` : '';
+    const detail = shown.length > 0 ? `: ${shown.join('; ')}` : '';
+    vscode.window.showWarningMessage(
+        `${failed} file(s) failed to generate documentation${detail}${suffix}`
+    );
 }
 
 /**
@@ -147,7 +156,7 @@ function getLanguageId(uri: vscode.Uri): string {
 /**
  * Writes generated documentation to disk.
  * @param schema - The module schema to write
- * @param config - The GenDocs configuration
+ * @param config - The docDocs configuration
  * @param folder - The workspace folder for output
  * @returns Promise that resolves when writing is complete
  */
@@ -156,7 +165,7 @@ async function writeOutput(
     config: GenDocsConfig,
     folder: vscode.WorkspaceFolder
 ): Promise<void> {
-    const outputDir = config.output?.directory ?? '.gendocs';
+    const outputDir = config.output?.directory ?? '.docdocs';
     const formats = config.output?.formats ?? ['markdown', 'ai-context'];
     const baseUri = vscode.Uri.joinPath(folder.uri, outputDir);
 
@@ -207,9 +216,13 @@ async function runConvergenceLoop(
     for (let i = 0; i < maxIterations; i++) {
         progress.report({ message: `Convergence iteration ${i + 1}/${maxIterations}` });
 
-        schema = await generateForFile(uri);
-        if (!schema) return null;
+        const result = await generateForFile(uri);
+        if (!result.ok) {
+            vscode.window.showErrorMessage(formatExtractionError(result.error));
+            return null;
+        }
 
+        schema = result.value;
         const currentHash = await contentHash(JSON.stringify(schema));
         if (currentHash === previousHash) {
             progress.report({ message: 'Documentation converged' });
@@ -262,24 +275,23 @@ export async function generateForFileCommand(uri?: vscode.Uri): Promise<void> {
             if (token.isCancellationRequested) return;
 
             progress.report({ message: 'Extracting symbols...' });
-            const configResult = await loadConfig(folder);
-            const config = configResult.ok ? configResult.value : getDefault();
+            const config = await loadConfigForCommand(folder);
 
-            const schema = await generateForFile(targetUri);
-            if (!schema) {
-                vscode.window.showErrorMessage('Failed to extract symbols');
+            const result = await generateForFile(targetUri);
+            if (!result.ok) {
+                vscode.window.showErrorMessage(formatExtractionError(result.error));
                 return;
             }
 
             if (token.isCancellationRequested) return;
 
             progress.report({ message: 'Writing output...' });
-            await writeOutput(schema, config, folder);
+            await writeOutput(result.value, config, folder);
 
             const fileUri = targetUri.toString() as FileURI;
             const doc = await vscode.workspace.openTextDocument(targetUri);
             const sourceHash = await contentHash(doc.getText());
-            const docHash = await contentHash(JSON.stringify(schema));
+            const docHash = await contentHash(JSON.stringify(result.value));
             recordGeneration(fileUri, sourceHash, docHash);
 
             vscode.window.showInformationMessage('Documentation generated successfully');
@@ -318,8 +330,7 @@ export async function generateForFolderCommand(uri?: vscode.Uri): Promise<void> 
                 return;
             }
 
-            const configResult = await loadConfig(folder);
-            const config = configResult.ok ? configResult.value : getDefault();
+            const config = await loadConfigForCommand(folder);
 
             const files = await vscode.workspace.findFiles(
                 new vscode.RelativePattern(targetUri, '**/*.{ts,js,py,rs,go,hs}'),
@@ -327,18 +338,31 @@ export async function generateForFolderCommand(uri?: vscode.Uri): Promise<void> 
             );
 
             let generated = 0;
+            let failed = 0;
+            const failures: ExtractionError[] = [];
             for (const file of files) {
                 if (token.isCancellationRequested) break;
 
                 progress.report({ message: `Processing ${file.fsPath}` });
-                const schema = await generateForFile(file);
-                if (schema) {
-                    await writeOutput(schema, config, folder);
+                const result = await generateForFile(file);
+                if (result.ok) {
+                    await writeOutput(result.value, config, folder);
                     generated++;
+                } else {
+                    failed++;
+                    failures.push(result.error);
                 }
             }
 
-            vscode.window.showInformationMessage(`Generated documentation for ${generated} files`);
+            if (failed > 0) {
+                reportBatchFailures(failed, failures);
+            }
+
+            const summary =
+                failed > 0
+                    ? `Generated documentation for ${generated} files (${failed} failed)`
+                    : `Generated documentation for ${generated} files`;
+            vscode.window.showInformationMessage(summary);
         }
     );
 }
@@ -418,23 +442,22 @@ export async function generateForSelectionCommand(): Promise<void> {
             progress.report({ message: `Found ${selectedSymbols.length} symbols, generating...` });
 
             // Generate docs for the file (full file extraction is required for context)
-            const configResult = await loadConfig(folder);
-            const config = configResult.ok ? configResult.value : getDefault();
+            const config = await loadConfigForCommand(folder);
 
-            const schema = await generateForFile(document.uri);
-            if (!schema) {
-                vscode.window.showErrorMessage('Failed to extract symbols');
+            const result = await generateForFile(document.uri);
+            if (!result.ok) {
+                vscode.window.showErrorMessage(formatExtractionError(result.error));
                 return;
             }
 
             if (token.isCancellationRequested) return;
 
             progress.report({ message: 'Writing output...' });
-            await writeOutput(schema, config, folder);
+            await writeOutput(result.value, config, folder);
 
             const fileUri = document.uri.toString() as FileURI;
             const sourceHash = await contentHash(document.getText());
-            const docHash = await contentHash(JSON.stringify(schema));
+            const docHash = await contentHash(JSON.stringify(result.value));
             recordGeneration(fileUri, sourceHash, docHash);
 
             vscode.window.showInformationMessage(
@@ -455,11 +478,6 @@ export async function generateForSelectionCommand(): Promise<void> {
  */
 export function registerGenerateCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-        // Support both command naming conventions for backwards compatibility
-        vscode.commands.registerCommand('gendocs.generateDocumentation', generateForFileCommand),
-        vscode.commands.registerCommand('gendocs.generateForFolder', generateForFolderCommand),
-        vscode.commands.registerCommand('gendocs.generateForWorkspace', generateForWorkspaceCommand),
-        // New docdocs.* commands
         vscode.commands.registerCommand('docdocs.generateFile', generateForFileCommand),
         vscode.commands.registerCommand('docdocs.generateFolder', generateForFolderCommand),
         vscode.commands.registerCommand('docdocs.generateWorkspace', generateForWorkspaceCommand),

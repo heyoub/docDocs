@@ -1,5 +1,5 @@
 /**
- * @fileoverview Export documentation command for GenDocs extension.
+ * @fileoverview Export documentation command for docDocs extension.
  * Exports documentation in various formats (LSIF, OpenAPI, GraphQL).
  *
  * @module commands/export
@@ -8,9 +8,10 @@
 
 import * as vscode from 'vscode';
 import type { FileURI, FileExtraction, ModuleSchema } from '../types/index.js';
-import { extractSymbols } from '../core/extractor/lsp.js';
-import { generateModuleSchema, generateWorkspaceSchema } from '../core/schema/generator.js';
-import { loadConfig, getDefault } from '../state/config.js';
+import { extractSymbols, formatLSPError } from '../core/extractor/lsp.js';
+import { generateWorkspaceSchema } from '../core/schema/generator.js';
+import { tryGenerateModuleSchema } from '../core/schema/generator.js';
+import { loadConfigForCommand } from '../state/config.js';
 
 // ============================================================
 // Helper Functions
@@ -155,29 +156,44 @@ export async function exportLSIFCommand(): Promise<void> {
             );
 
             const moduleSchemas = new Map<string, ModuleSchema>();
+            let lspSkipped = 0;
 
             for (const file of files) {
                 if (token.isCancellationRequested) break;
                 progress.report({ message: `Processing ${file.fsPath}` });
 
                 const symbolsResult = await extractSymbols(file);
-                if (symbolsResult.ok) {
-                    const extraction: FileExtraction = {
-                        uri: file.toString() as FileURI,
-                        languageId: getLanguageId(file),
-                        symbols: symbolsResult.value,
-                        imports: [],
-                        exports: [],
-                        method: 'lsp',
-                        timestamp: Date.now(),
-                    };
-                    const schema = generateModuleSchema(extraction);
-                    moduleSchemas.set(schema.path, schema);
+                if (!symbolsResult.ok) {
+                    lspSkipped++;
+                    console.warn(`Export skipped ${file.fsPath}: ${formatLSPError(symbolsResult.error)}`);
+                    continue;
                 }
+
+                const extraction: FileExtraction = {
+                    uri: file.toString() as FileURI,
+                    languageId: getLanguageId(file),
+                    symbols: symbolsResult.value,
+                    imports: [],
+                    exports: [],
+                    method: 'lsp',
+                    timestamp: Date.now(),
+                };
+                const schemaResult = tryGenerateModuleSchema(extraction);
+                if (!schemaResult.ok) {
+                    console.warn(`Export skipped ${file.fsPath}: ${schemaResult.error}`);
+                    continue;
+                }
+                moduleSchemas.set(schemaResult.value.path, schemaResult.value);
+            }
+
+            if (lspSkipped > 0) {
+                vscode.window.showWarningMessage(
+                    `LSIF export omitted ${lspSkipped} file(s): LSP symbol provider unavailable or timed out`
+                );
             }
 
             const lsif = generateLSIF(moduleSchemas);
-            const outputUri = vscode.Uri.joinPath(folder.uri, '.gendocs', 'index.lsif');
+            const outputUri = vscode.Uri.joinPath(folder.uri, '.docdocs', 'index.lsif');
             await writeFile(outputUri, lsif);
 
             vscode.window.showInformationMessage(`LSIF index exported to ${outputUri.fsPath}`);
@@ -195,8 +211,7 @@ export async function exportOpenAPICommand(): Promise<void> {
         return;
     }
 
-    const configResult = await loadConfig(folder);
-    const config = configResult.ok ? configResult.value : getDefault();
+    const config = await loadConfigForCommand(folder);
     const openApiConfig = config.export?.openapi ?? { title: 'API', version: '1.0.0' };
 
     await vscode.window.withProgress(
@@ -212,29 +227,44 @@ export async function exportOpenAPICommand(): Promise<void> {
             );
 
             const moduleSchemas = new Map<string, ModuleSchema>();
+            let lspSkipped = 0;
 
             for (const file of files) {
                 if (token.isCancellationRequested) break;
                 progress.report({ message: `Processing ${file.fsPath}` });
 
                 const symbolsResult = await extractSymbols(file);
-                if (symbolsResult.ok) {
-                    const extraction: FileExtraction = {
-                        uri: file.toString() as FileURI,
-                        languageId: getLanguageId(file),
-                        symbols: symbolsResult.value,
-                        imports: [],
-                        exports: [],
-                        method: 'lsp',
-                        timestamp: Date.now(),
-                    };
-                    const schema = generateModuleSchema(extraction);
-                    moduleSchemas.set(schema.path, schema);
+                if (!symbolsResult.ok) {
+                    lspSkipped++;
+                    console.warn(`Export skipped ${file.fsPath}: ${formatLSPError(symbolsResult.error)}`);
+                    continue;
                 }
+
+                const extraction: FileExtraction = {
+                    uri: file.toString() as FileURI,
+                    languageId: getLanguageId(file),
+                    symbols: symbolsResult.value,
+                    imports: [],
+                    exports: [],
+                    method: 'lsp',
+                    timestamp: Date.now(),
+                };
+                const schemaResult = tryGenerateModuleSchema(extraction);
+                if (!schemaResult.ok) {
+                    console.warn(`Export skipped ${file.fsPath}: ${schemaResult.error}`);
+                    continue;
+                }
+                moduleSchemas.set(schemaResult.value.path, schemaResult.value);
+            }
+
+            if (lspSkipped > 0) {
+                vscode.window.showWarningMessage(
+                    `OpenAPI export omitted ${lspSkipped} file(s): LSP symbol provider unavailable or timed out`
+                );
             }
 
             const openapi = generateOpenAPI(moduleSchemas, openApiConfig);
-            const outputUri = vscode.Uri.joinPath(folder.uri, '.gendocs', 'openapi.json');
+            const outputUri = vscode.Uri.joinPath(folder.uri, '.docdocs', 'openapi.json');
             await writeFile(outputUri, openapi);
 
             vscode.window.showInformationMessage(`OpenAPI spec exported to ${outputUri.fsPath}`);

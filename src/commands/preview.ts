@@ -1,5 +1,5 @@
 /**
- * @fileoverview Preview documentation command for GenDocs extension.
+ * @fileoverview Preview documentation command for docDocs extension.
  * Opens a live preview webview for the current file's documentation.
  *
  * @module commands/preview
@@ -7,9 +7,9 @@
  */
 
 import * as vscode from 'vscode';
-import type { FileURI, FileExtraction, ModuleSchema } from '../types/index.js';
-import { extractSymbols } from '../core/extractor/lsp.js';
-import { generateModuleSchema } from '../core/schema/generator.js';
+import type { FileURI } from '../types/index.js';
+import { formatExtractionError } from '../types/index.js';
+import { buildModuleSchema } from '../core/pipeline/buildModuleSchema.js';
 import { PreviewPanelManager } from '../ui/webview/preview.js';
 
 // ============================================================
@@ -45,28 +45,6 @@ function getLanguageId(uri: vscode.Uri): string {
     return langMap[ext] ?? ext;
 }
 
-/**
- * Generates schema for a file.
- */
-async function generateSchema(uri: vscode.Uri): Promise<ModuleSchema | null> {
-    const symbolsResult = await extractSymbols(uri);
-    if (!symbolsResult.ok) {
-        return null;
-    }
-
-    const extraction: FileExtraction = {
-        uri: uri.toString() as FileURI,
-        languageId: getLanguageId(uri),
-        symbols: symbolsResult.value,
-        imports: [],
-        exports: [],
-        method: 'lsp',
-        timestamp: Date.now(),
-    };
-
-    return generateModuleSchema(extraction);
-}
-
 // ============================================================
 // Commands
 // ============================================================
@@ -81,11 +59,13 @@ export async function previewDocumentationCommand(uri?: vscode.Uri): Promise<voi
         return;
     }
 
-    const schema = await generateSchema(targetUri);
-    if (!schema) {
-        vscode.window.showErrorMessage('Failed to generate documentation preview');
+    const schemaResult = await buildModuleSchema(targetUri, getLanguageId(targetUri));
+    if (!schemaResult.ok) {
+        vscode.window.showErrorMessage(formatExtractionError(schemaResult.error));
         return;
     }
+
+    const schema = schemaResult.value;
 
     const fileUri = targetUri.toString() as FileURI;
     const manager = getPreviewManager();

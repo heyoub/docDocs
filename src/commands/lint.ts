@@ -1,5 +1,5 @@
 /**
- * @fileoverview Lint documentation command for GenDocs extension.
+ * @fileoverview Lint documentation command for docDocs extension.
  * Runs documentation linter and shows coverage reports.
  *
  * @module commands/lint
@@ -9,10 +9,11 @@
 import * as vscode from 'vscode';
 import * as crypto from 'crypto';
 import type { FileURI, FileExtraction, ModuleSchema } from '../types/index.js';
-import { extractSymbols } from '../core/extractor/lsp.js';
-import { generateModuleSchema, generateWorkspaceSchema } from '../core/schema/generator.js';
+import { extractSymbols, formatLSPError } from '../core/extractor/lsp.js';
+import { generateWorkspaceSchema } from '../core/schema/generator.js';
+import { tryGenerateModuleSchema } from '../core/schema/generator.js';
 import { lint, calculateCoverage } from '../core/linter/linter.js';
-import { loadConfig, getDefault } from '../state/config.js';
+import { loadConfigForCommand } from '../state/config.js';
 import { GenDocsDiagnosticsManager } from '../providers/diagnostics.js';
 import { checkFreshness as checkFileFreshness, getStatistics } from '../state/freshness.js';
 
@@ -67,8 +68,7 @@ export async function lintDocumentationCommand(): Promise<void> {
             cancellable: true,
         },
         async (progress, token) => {
-            const configResult = await loadConfig(folder);
-            const config = configResult.ok ? configResult.value : getDefault();
+            const config = await loadConfigForCommand(folder);
 
             const files = await vscode.workspace.findFiles(
                 '**/*.{ts,js,py,rs,go,hs}',
@@ -77,27 +77,51 @@ export async function lintDocumentationCommand(): Promise<void> {
 
             const extractions: FileExtraction[] = [];
             const moduleSchemas = new Map<string, ModuleSchema>();
+            let lspSkipped = 0;
+            let schemaSkipped = 0;
 
             for (const file of files) {
                 if (token.isCancellationRequested) break;
                 progress.report({ message: `Analyzing ${file.fsPath}` });
 
                 const symbolsResult = await extractSymbols(file);
-                if (symbolsResult.ok) {
-                    const extraction: FileExtraction = {
-                        uri: file.toString() as FileURI,
-                        languageId: getLanguageId(file),
-                        symbols: symbolsResult.value,
-                        imports: [],
-                        exports: [],
-                        method: 'lsp',
-                        timestamp: Date.now(),
-                    };
-                    extractions.push(extraction);
-
-                    const schema = generateModuleSchema(extraction);
-                    moduleSchemas.set(schema.path, schema);
+                if (!symbolsResult.ok) {
+                    lspSkipped++;
+                    const fileUri = file.toString() as FileURI;
+                    diagnosticsManager?.reportExtractionFailure(
+                        fileUri,
+                        formatLSPError(symbolsResult.error)
+                    );
+                    continue;
                 }
+
+                const extraction: FileExtraction = {
+                    uri: file.toString() as FileURI,
+                    languageId: getLanguageId(file),
+                    symbols: symbolsResult.value,
+                    imports: [],
+                    exports: [],
+                    method: 'lsp',
+                    timestamp: Date.now(),
+                };
+                extractions.push(extraction);
+
+                const schemaResult = tryGenerateModuleSchema(extraction);
+                if (!schemaResult.ok) {
+                    schemaSkipped++;
+                    diagnosticsManager?.reportExtractionFailure(
+                        extraction.uri,
+                        schemaResult.error
+                    );
+                    continue;
+                }
+                moduleSchemas.set(schemaResult.value.path, schemaResult.value);
+            }
+
+            if (lspSkipped > 0 || schemaSkipped > 0) {
+                vscode.window.showWarningMessage(
+                    `Skipped ${lspSkipped + schemaSkipped} file(s): extraction or schema generation failed (see Problems)`
+                );
             }
 
             const workspaceSchema = generateWorkspaceSchema(extractions);
@@ -236,26 +260,40 @@ export async function showCoverageReportCommand(): Promise<void> {
 
             const extractions: FileExtraction[] = [];
             const moduleSchemas = new Map<string, ModuleSchema>();
+            let lspSkipped = 0;
 
             for (const file of files) {
                 progress.report({ message: `Analyzing ${file.fsPath}` });
 
                 const symbolsResult = await extractSymbols(file);
-                if (symbolsResult.ok) {
-                    const extraction: FileExtraction = {
-                        uri: file.toString() as FileURI,
-                        languageId: getLanguageId(file),
-                        symbols: symbolsResult.value,
-                        imports: [],
-                        exports: [],
-                        method: 'lsp',
-                        timestamp: Date.now(),
-                    };
-                    extractions.push(extraction);
-
-                    const schema = generateModuleSchema(extraction);
-                    moduleSchemas.set(schema.path, schema);
+                if (!symbolsResult.ok) {
+                    lspSkipped++;
+                    continue;
                 }
+
+                const extraction: FileExtraction = {
+                    uri: file.toString() as FileURI,
+                    languageId: getLanguageId(file),
+                    symbols: symbolsResult.value,
+                    imports: [],
+                    exports: [],
+                    method: 'lsp',
+                    timestamp: Date.now(),
+                };
+                extractions.push(extraction);
+
+                const schemaResult = tryGenerateModuleSchema(extraction);
+                if (!schemaResult.ok) {
+                    lspSkipped++;
+                    continue;
+                }
+                moduleSchemas.set(schemaResult.value.path, schemaResult.value);
+            }
+
+            if (lspSkipped > 0) {
+                vscode.window.showWarningMessage(
+                    `Coverage omitted ${lspSkipped} file(s): LSP or schema generation failed`
+                );
             }
 
             const workspaceSchema = generateWorkspaceSchema(extractions);

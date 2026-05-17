@@ -1,5 +1,5 @@
 /**
- * @fileoverview Changelog commands for GenDocs extension.
+ * @fileoverview Changelog commands for docDocs extension.
  * Provides VS Code commands for snapshot management and changelog generation.
  *
  * @module commands/changelog
@@ -20,12 +20,12 @@ import {
     restoreIndex,
     createModuleSnapshot
 } from '../state/snapshots.js';
-import { extractSymbols } from '../core/extractor/lsp.js';
+import { extractSymbols, formatLSPError } from '../core/extractor/lsp.js';
 import { extractExports } from '../core/extractor/exports.js';
-import { generateModuleSchema } from '../core/schema/generator.js';
+import { tryGenerateModuleSchema } from '../core/schema/generator.js';
 import { computeDiff } from '../core/changelog/diff.js';
 import { renderChangelog } from '../core/changelog/renderer.js';
-import { loadConfig, getDefault } from '../state/config.js';
+import { loadConfigForCommand } from '../state/config.js';
 // contentHash is used internally by createModuleSnapshot
 
 // ============================================================
@@ -136,6 +136,7 @@ async function createModuleSnapshotForFile(
     // Extract symbols
     const symbolsResult = await extractSymbols(file);
     if (!symbolsResult.ok) {
+        console.warn(`Snapshot skipped ${file.fsPath}: ${formatLSPError(symbolsResult.error)}`);
         return null;
     }
 
@@ -164,8 +165,12 @@ async function createModuleSnapshotForFile(
                 method: 'lsp' as const,
                 timestamp: Date.now()
             };
-            const moduleSchema = generateModuleSchema(extraction);
-            symbolSchema = moduleSchema.definitions[symbol.name] ?? null;
+            const moduleResult = tryGenerateModuleSchema(extraction);
+            if (!moduleResult.ok) {
+                console.warn(`Snapshot schema failed ${file.fsPath}: ${moduleResult.error}`);
+            } else {
+                symbolSchema = moduleResult.value.definitions[symbol.name] ?? null;
+            }
         }
 
         exportedSymbols.push({
@@ -340,8 +345,7 @@ export async function compareSnapshotsCommand(): Promise<void> {
     const diff = computeDiff(fromResult.value, toResult.value);
 
     // Load config for harsh mode setting
-    const configResult = await loadConfig(folder);
-    const config = configResult.ok ? configResult.value : getDefault();
+    const config = await loadConfigForCommand(folder);
     const harshMode = config.changelog.harshMode;
 
     // Render changelog
@@ -440,8 +444,7 @@ export async function generateChangelogCommand(): Promise<void> {
             const diff = computeDiff(fromSnapshot, currentSnapshot);
 
             // Load config
-            const configResult = await loadConfig(folder);
-            const config = configResult.ok ? configResult.value : getDefault();
+            const config = await loadConfigForCommand(folder);
             const harshMode = config.changelog.harshMode;
 
             // Render changelog
