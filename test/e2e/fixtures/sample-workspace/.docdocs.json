@@ -1,0 +1,9 @@
+{
+    "output": {
+        "directory": ".docdocs",
+        "formats": ["markdown"]
+    },
+    "watch": {
+        "autoRegenerate": true
+    }
+}

@@ -46,4 +46,27 @@ suite('docDocs E2E', () => {
         await vscode.window.showTextDocument(exampleUri);
         await vscode.commands.executeCommand('docdocs.preview', exampleUri);
     });
+
+    test('warmProviderCache command is registered', async () => {
+        const commands = await vscode.commands.getCommands(true);
+        assert.ok(commands.includes('docdocs.warmProviderCache'));
+    });
+
+    test('extension bundles tree-sitter wasm grammars', async () => {
+        const ext = vscode.extensions.getExtension('heyoub.docdocs');
+        assert.ok(ext, 'docdocs extension should be present');
+        await ext.activate();
+        const wasmUri = vscode.Uri.joinPath(ext.extensionUri, 'wasm', 'tree-sitter-typescript.wasm');
+        const stat = await vscode.workspace.fs.stat(wasmUri);
+        assert.ok(stat.size > 0, 'typescript grammar wasm should be packaged');
+    });
+
+    test('warmProviderCache runs for open editor', async function () {
+        this.timeout(90_000);
+        const folders = vscode.workspace.workspaceFolders;
+        assert.ok(folders && folders.length > 0);
+        const exampleUri = vscode.Uri.joinPath(folders[0]!.uri, 'src', 'example.ts');
+        await vscode.window.showTextDocument(exampleUri);
+        await vscode.commands.executeCommand('docdocs.warmProviderCache');
+    });
 });
