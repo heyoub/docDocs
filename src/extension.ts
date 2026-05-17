@@ -14,6 +14,9 @@ import { registerPreviewCommands } from './commands/preview.js';
 import { registerLintCommands, setDiagnosticsManager } from './commands/lint.js';
 import { registerExportCommands, setDiagnosticsManager as setExportDiagnosticsManager } from './commands/export.js';
 import { registerChangelogCommands } from './commands/changelog.js';
+import { registerAnalyzeCommands } from './commands/analyze.js';
+import { registerOpenRouterCommands } from './commands/openRouter.js';
+import { registerOpenRouterSecrets } from './state/openRouterSecrets.js';
 
 // Providers
 import { registerCodeLensProvider } from './providers/codeLens.js';
@@ -105,6 +108,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         log('tree-sitter WASM not bundled — run build:copy-wasm before packaging');
     }
 
+    registerOpenRouterSecrets(context);
+
     try {
         // Restore persisted state for each workspace folder
         const folders = vscode.workspace.workspaceFolders;
@@ -125,6 +130,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         registerLintCommands(context);
         registerExportCommands(context);
         registerChangelogCommands(context);
+        registerAnalyzeCommands(context);
+        registerOpenRouterCommands(context);
 
         // Register providers
         const codeLensProvider = registerCodeLensProvider(context);
