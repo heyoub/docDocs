@@ -1,6 +1,6 @@
 /**
- * @fileoverview Configuration management for GenDocs extension.
- * Handles loading, saving, validation, and merging of .gendocs.json files.
+ * @fileoverview Configuration management for docDocs extension.
+ * Handles loading, saving, validation, and merging of .docdocs.json files.
  *
  * @module state/config
  * @requirements 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7, 13.8
@@ -24,6 +24,7 @@ import type {
     LintRulesConfig,
 } from '../types/config.js';
 import { ok, err } from '../utils/result.js';
+import { parseGenDocsConfig } from './configSchema.js';
 
 // ============================================================
 // Types
@@ -37,11 +38,60 @@ export type ConfigError =
     | { readonly type: 'parse'; readonly message: string }
     | { readonly type: 'validation'; readonly message: string };
 
+const CONFIG_FILE = '.docdocs.json';
+/** Legacy config file name; read for migration, never written */
+const LEGACY_CONFIG_FILE = '.gendocs.json';
+
+/** Workspaces we already warned about invalid config (one warning per session). */
+const configWarnedWorkspaces = new Set<string>();
+
+/**
+ * Formats a config load error for display in the UI or logs.
+ */
+export function formatConfigError(error: ConfigError): string {
+    switch (error.type) {
+        case 'parse':
+            return `invalid JSON in ${CONFIG_FILE}: ${error.message}`;
+        case 'validation':
+            return `invalid ${CONFIG_FILE}: ${error.message}`;
+        case 'io':
+            return error.message;
+    }
+}
+
+/**
+ * Loads config for command handlers. On load/parse/validation failure, shows a
+ * warning once per workspace and returns defaults (missing file still uses defaults silently).
+ */
+export async function loadConfigForCommand(
+    folder: vscode.WorkspaceFolder
+): Promise<GenDocsConfig> {
+    const result = await loadConfig(folder);
+    if (result.ok) {
+        return result.value;
+    }
+    const key = folder.uri.toString();
+    if (!configWarnedWorkspaces.has(key)) {
+        configWarnedWorkspaces.add(key);
+        void vscode.window.showWarningMessage(
+            `docDocs: ${formatConfigError(result.error)}. Using default configuration.`
+        );
+    }
+    return getDefault();
+}
+
+/**
+ * Loads config when validation gates must run. Fails closed if the config file exists but is invalid.
+ */
+export async function loadConfigForValidationGates(
+    folder: vscode.WorkspaceFolder
+): AsyncResult<GenDocsConfig, ConfigError> {
+    return loadConfig(folder);
+}
+
 // ============================================================
 // Constants
 // ============================================================
-
-const CONFIG_FILE = '.gendocs.json';
 
 /**
  * Default lint rules configuration.
@@ -62,7 +112,7 @@ const DEFAULT_LINT_RULES: LintRulesConfig = {
  * Default output configuration.
  */
 const DEFAULT_OUTPUT: OutputConfig = {
-    directory: '.gendocs',
+    directory: '.docdocs',
     formats: ['markdown', 'ai-context'],
     clean: false,
 };
@@ -167,14 +217,14 @@ const DEFAULT_CHANGELOG: ChangelogConfig = {
 // ============================================================
 
 /**
- * Returns the default GenDocs configuration.
+ * Returns the default docDocs configuration.
  * All required fields are populated with sensible defaults.
  *
  * @returns Complete default configuration
  *
  * @example
  * const config = getDefault();
- * console.log(config.output.directory); // '.gendocs'
+ * console.log(config.output.directory); // '.docdocs'
  */
 export function getDefault(): GenDocsConfig {
     return {
@@ -199,7 +249,7 @@ export function getDefault(): GenDocsConfig {
 
 /**
  * Loads configuration from a workspace folder.
- * Reads .gendocs.json if it exists, otherwise returns defaults.
+ * Reads .docdocs.json if it exists (or .gendocs.json for migration), otherwise returns defaults.
  *
  * @param folder - The workspace folder to load config from
  * @returns AsyncResult with the loaded configuration or error
@@ -214,14 +264,18 @@ export async function loadConfig(
     folder: vscode.WorkspaceFolder
 ): AsyncResult<GenDocsConfig, ConfigError> {
     try {
-        const configUri = vscode.Uri.joinPath(folder.uri, CONFIG_FILE);
-
+        // Try canonical config first, then legacy for migration
         let content: Uint8Array;
+        let usedUri = vscode.Uri.joinPath(folder.uri, CONFIG_FILE);
         try {
-            content = await vscode.workspace.fs.readFile(configUri);
+            content = await vscode.workspace.fs.readFile(usedUri);
         } catch {
-            // File doesn't exist, return defaults
-            return ok(getDefault());
+            try {
+                usedUri = vscode.Uri.joinPath(folder.uri, LEGACY_CONFIG_FILE);
+                content = await vscode.workspace.fs.readFile(usedUri);
+            } catch {
+                return ok(getDefault());
+            }
         }
 
         const decoder = new TextDecoder();
@@ -254,7 +308,7 @@ export async function loadConfig(
 
 /**
  * Saves configuration to a workspace folder.
- * Writes to .gendocs.json in the workspace root.
+ * Writes to .docdocs.json in the workspace root.
  *
  * @param folder - The workspace folder to save config to
  * @param config - The configuration to save
@@ -287,8 +341,8 @@ export async function saveConfig(
 // ============================================================
 
 /**
- * Validates that a parsed object is a valid GenDocsConfig.
- * Performs structural validation without JSON Schema.
+ * Validates that a parsed object is a valid docDocs config.
+ * Uses Zod schemas in configSchema.ts (enum checks, strict keys, nested sections).
  *
  * @param obj - The object to validate
  * @returns Result with validated config or validation error
@@ -296,109 +350,7 @@ export async function saveConfig(
 export function validateConfig(
     obj: unknown
 ): { ok: true; value: Partial<GenDocsConfig> } | { ok: false; error: ConfigError } {
-    if (typeof obj !== 'object' || obj === null) {
-        return err({ type: 'validation', message: 'Config must be an object' });
-    }
-
-    const record = obj as Record<string, unknown>;
-
-    // Version check
-    if (record['version'] !== undefined && record['version'] !== 1) {
-        return err({ type: 'validation', message: 'Config version must be 1' });
-    }
-
-    // Validate output section
-    if (record['output'] !== undefined) {
-        const outputResult = validateOutputConfig(record['output']);
-        if (!outputResult.ok) return outputResult;
-    }
-
-    // Validate source section
-    if (record['source'] !== undefined) {
-        const sourceResult = validateSourceConfig(record['source']);
-        if (!sourceResult.ok) return sourceResult;
-    }
-
-    // Validate ml section
-    if (record['ml'] !== undefined) {
-        const mlResult = validateMLConfig(record['ml']);
-        if (!mlResult.ok) return mlResult;
-    }
-
-    return ok(record as Partial<GenDocsConfig>);
-}
-
-/**
- * Validates output configuration section.
- */
-function validateOutputConfig(
-    obj: unknown
-): { ok: true; value: unknown } | { ok: false; error: ConfigError } {
-    if (typeof obj !== 'object' || obj === null) {
-        return err({ type: 'validation', message: 'output must be an object' });
-    }
-
-    const record = obj as Record<string, unknown>;
-
-    if (record['directory'] !== undefined && typeof record['directory'] !== 'string') {
-        return err({ type: 'validation', message: 'output.directory must be a string' });
-    }
-
-    if (record['formats'] !== undefined && !Array.isArray(record['formats'])) {
-        return err({ type: 'validation', message: 'output.formats must be an array' });
-    }
-
-    if (record['clean'] !== undefined && typeof record['clean'] !== 'boolean') {
-        return err({ type: 'validation', message: 'output.clean must be a boolean' });
-    }
-
-    return ok(obj);
-}
-
-/**
- * Validates source configuration section.
- */
-function validateSourceConfig(
-    obj: unknown
-): { ok: true; value: unknown } | { ok: false; error: ConfigError } {
-    if (typeof obj !== 'object' || obj === null) {
-        return err({ type: 'validation', message: 'source must be an object' });
-    }
-
-    const record = obj as Record<string, unknown>;
-
-    if (record['include'] !== undefined && !Array.isArray(record['include'])) {
-        return err({ type: 'validation', message: 'source.include must be an array' });
-    }
-
-    if (record['exclude'] !== undefined && !Array.isArray(record['exclude'])) {
-        return err({ type: 'validation', message: 'source.exclude must be an array' });
-    }
-
-    return ok(obj);
-}
-
-/**
- * Validates ML configuration section.
- */
-function validateMLConfig(
-    obj: unknown
-): { ok: true; value: unknown } | { ok: false; error: ConfigError } {
-    if (typeof obj !== 'object' || obj === null) {
-        return err({ type: 'validation', message: 'ml must be an object' });
-    }
-
-    const record = obj as Record<string, unknown>;
-
-    if (record['enabled'] !== undefined && typeof record['enabled'] !== 'boolean') {
-        return err({ type: 'validation', message: 'ml.enabled must be a boolean' });
-    }
-
-    if (record['model'] !== undefined && typeof record['model'] !== 'string') {
-        return err({ type: 'validation', message: 'ml.model must be a string' });
-    }
-
-    return ok(obj);
+    return parseGenDocsConfig(obj);
 }
 
 // ============================================================

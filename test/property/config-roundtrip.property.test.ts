@@ -3,7 +3,7 @@
  * Verifies that GenDocsConfig can be serialized and deserialized
  * without data loss.
  *
- * Feature: gendocs-extension, Property 23: Schema Round-Trip Consistency
+ * Feature: docdocs-extension, Property 23: Schema Round-Trip Consistency
  * Validates: Requirements 13.1
  *
  * @module test/property/config-roundtrip.property.test
@@ -19,6 +19,7 @@ import type {
     MLDevice,
 } from '../../src/types/config.js';
 import { getDefault, mergeConfigs, validateConfig } from '../../src/state/config.js';
+import { parseGenDocsConfig } from '../../src/state/configSchema.js';
 
 // ============================================================
 // Arbitrary Generators
@@ -251,7 +252,7 @@ function configsAreEqual(a: GenDocsConfig, b: GenDocsConfig): boolean {
 // Property Tests
 // ============================================================
 
-describe('Feature: gendocs-extension, Property 23: Schema Round-Trip Consistency', () => {
+describe('Feature: docdocs-extension, Property 23: Schema Round-Trip Consistency', () => {
     it('should preserve config through JSON serialization round-trip', () => {
         fc.assert(
             fc.property(arbGenDocsConfig, (config) => {
@@ -456,6 +457,63 @@ describe('Feature: gendocs-extension, Property 23: Schema Round-Trip Consistency
 
         const restored = jsonRoundTrip(fullConfig);
         expect(configsAreEqual(fullConfig, restored)).toBe(true);
+    });
+
+    it('should reject invalid output formats via Zod validation', () => {
+        const result = parseGenDocsConfig({
+            output: { formats: ['not-a-format'] },
+        });
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+            expect(result.error.type).toBe('validation');
+            expect(result.error.message).toContain('formats');
+        }
+    });
+
+    it('should reject invalid ML device values', () => {
+        const result = parseGenDocsConfig({
+            ml: { device: 'cuda' },
+        });
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+            expect(result.error.type).toBe('validation');
+            expect(result.error.message).toContain('device');
+        }
+    });
+
+    it('should reject unknown lint rule keys', () => {
+        const result = parseGenDocsConfig({
+            linting: {
+                rules: { 'not-a-rule': 'error' },
+            },
+        });
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+            expect(result.error.type).toBe('validation');
+        }
+    });
+
+    it('should reject unknown top-level config keys', () => {
+        const result = parseGenDocsConfig({
+            version: 1,
+            unknownSection: true,
+        });
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+            expect(result.error.type).toBe('validation');
+        }
+    });
+
+    it('should accept partial section overrides', () => {
+        const result = parseGenDocsConfig({
+            output: { clean: true },
+            ml: { enabled: true },
+        });
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+            expect(result.value.output?.clean).toBe(true);
+            expect(result.value.ml?.enabled).toBe(true);
+        }
     });
 
     it('should handle minimal config merged with defaults', () => {
