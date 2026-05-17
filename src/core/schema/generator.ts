@@ -1,5 +1,5 @@
 /**
- * @fileoverview JSON Schema generator for GenDocs extension.
+ * @fileoverview JSON Schema generator for docDocs extension.
  * Converts extracted symbols and files into canonical JSON Schema documentation.
  * Layer 2 - imports only from Layer 0 (types) and Layer 1 (utils).
  *
@@ -13,6 +13,7 @@ import type {
     ExtractedFunction,
     FileExtraction,
 } from '../../types/extraction.js';
+import type { Result } from '../../types/base.js';
 import type {
     SymbolSchema,
     ModuleSchema,
@@ -24,6 +25,7 @@ import type {
     ImportSchema,
     ExportSchema,
 } from '../../types/schema.js';
+import { ok, err } from '../../utils/result.js';
 
 // ============================================================
 // Constants
@@ -188,8 +190,9 @@ function countDocumented(symbols: readonly ExtractedSymbol[]): number {
         if (symbol.documentation !== null && symbol.documentation.trim() !== '') {
             count++;
         }
-        // Recursively count children
-        count += countDocumented(symbol.children);
+        if (Array.isArray(symbol.children)) {
+            count += countDocumented(symbol.children);
+        }
     }
     return count;
 }
@@ -202,7 +205,9 @@ function countDocumented(symbols: readonly ExtractedSymbol[]): number {
 function countTotal(symbols: readonly ExtractedSymbol[]): number {
     let count = symbols.length;
     for (const symbol of symbols) {
-        count += countTotal(symbol.children);
+        if (Array.isArray(symbol.children)) {
+            count += countTotal(symbol.children);
+        }
     }
     return count;
 }
@@ -244,7 +249,7 @@ export function generateSymbolSchema(symbol: ExtractedSymbol, modulePath: string
         return {
             ...baseSchema,
             parameters: symbol.parameters.map(convertParameter),
-            returnType: parseTypeString(symbol.returnType),
+            returnType: parseTypeString(symbol.returnType ?? 'unknown'),
         };
     }
 
@@ -265,8 +270,8 @@ function generateSymbolSchemas(
     const schema = generateSymbolSchema(symbol, modulePath);
     definitions[symbol.name] = schema;
 
-    // Process children recursively
-    for (const child of symbol.children) {
+    const children = Array.isArray(symbol.children) ? symbol.children : [];
+    for (const child of children) {
         // Use qualified name for nested symbols
         const childPath = `${symbol.name}.${child.name}`;
         const childSchema = generateSymbolSchema(child, modulePath);
@@ -277,9 +282,70 @@ function generateSymbolSchemas(
         };
 
         // Recursively process grandchildren
-        for (const grandchild of child.children) {
+        const grandchildren = Array.isArray(child.children) ? child.children : [];
+        for (const grandchild of grandchildren) {
             generateSymbolSchemas(grandchild, modulePath, definitions);
         }
+    }
+}
+
+/**
+ * Normalizes extraction input so schema generation tolerates malformed LSP/tree-sitter data.
+ */
+export function normalizeFileExtraction(extraction: FileExtraction): FileExtraction {
+    return {
+        ...extraction,
+        symbols: Array.isArray(extraction.symbols)
+            ? extraction.symbols.map(normalizeExtractedSymbol)
+            : [],
+    };
+}
+
+function normalizeExtractedSymbol(symbol: ExtractedSymbol): ExtractedSymbol {
+    const children = Array.isArray(symbol.children)
+        ? symbol.children.map(normalizeExtractedSymbol)
+        : [];
+    return {
+        ...symbol,
+        name: typeof symbol.name === 'string' && symbol.name.length > 0 ? symbol.name : 'unknown',
+        signature: typeof symbol.signature === 'string' ? symbol.signature : '',
+        documentation: symbol.documentation ?? null,
+        modifiers: Array.isArray(symbol.modifiers) ? [...symbol.modifiers] : [],
+        children,
+    };
+}
+
+/**
+ * Validates extraction input before schema generation.
+ */
+export function validateFileExtraction(extraction: FileExtraction): Result<void, string> {
+    if (!extraction.uri?.trim()) {
+        return err('missing file URI');
+    }
+    if (!Array.isArray(extraction.symbols)) {
+        return err('symbols must be an array');
+    }
+    if (typeof extraction.languageId !== 'string' || extraction.languageId.length === 0) {
+        return err('languageId must be a non-empty string');
+    }
+    return ok(undefined);
+}
+
+/**
+ * Generates a module schema, returning structured errors instead of throwing.
+ */
+export function tryGenerateModuleSchema(extraction: FileExtraction): Result<ModuleSchema, string> {
+    const validation = validateFileExtraction(extraction);
+    if (!validation.ok) {
+        return err(validation.error);
+    }
+
+    const normalized = normalizeFileExtraction(extraction);
+    try {
+        return ok(generateModuleSchema(normalized));
+    } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        return err(`schema generation failed: ${message}`);
     }
 }
 
