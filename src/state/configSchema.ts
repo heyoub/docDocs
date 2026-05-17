@@ -116,6 +116,11 @@ const validationConfigShape = z.object({
 
 export const validationConfigSchema = validationConfigShape.strict().partial();
 
+const openRouterMlConfigShape = z.object({
+    enabled: z.boolean(),
+    model: z.string().min(1),
+});
+
 const mlConfigShape = z.object({
     enabled: z.boolean(),
     model: z.string().min(1),
@@ -125,6 +130,7 @@ const mlConfigShape = z.object({
     generateSummaries: z.boolean(),
     generateTransitions: z.boolean(),
     generateWhyItMatters: z.boolean(),
+    openRouter: openRouterMlConfigShape,
 });
 
 export const mlConfigSchema = mlConfigShape.strict().partial();

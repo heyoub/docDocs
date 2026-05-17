@@ -136,9 +136,14 @@ const arbMLConfig = fc.record({
     model: arbModelId,
     device: arbMLDevice,
     cacheDir: fc.option(arbDirectory, { nil: undefined }),
+    maxTokens: fc.integer({ min: 64, max: 32000 }),
     generateSummaries: fc.boolean(),
     generateTransitions: fc.boolean(),
     generateWhyItMatters: fc.boolean(),
+    openRouter: fc.record({
+        enabled: fc.boolean(),
+        model: fc.string({ minLength: 1 }),
+    }),
 }).map(config => {
     // Remove undefined cacheDir
     if (config.cacheDir === undefined) {
@@ -339,6 +344,8 @@ describe('Feature: docdocs-extension, Property 23: Schema Round-Trip Consistency
                 expect(restored.ml.generateSummaries).toBe(ml.generateSummaries);
                 expect(restored.ml.generateTransitions).toBe(ml.generateTransitions);
                 expect(restored.ml.generateWhyItMatters).toBe(ml.generateWhyItMatters);
+                expect(restored.ml.openRouter.enabled).toBe(ml.openRouter.enabled);
+                expect(restored.ml.openRouter.model).toBe(ml.openRouter.model);
             }),
             { numRuns: 100 }
         );

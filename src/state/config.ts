@@ -181,6 +181,10 @@ const DEFAULT_ML: MLConfig = {
     generateSummaries: true,
     generateTransitions: false,
     generateWhyItMatters: false,
+    openRouter: {
+        enabled: true,
+        model: 'openrouter/auto',
+    },
 };
 
 /**
@@ -460,6 +464,10 @@ function mergeML(base: MLConfig, override?: Partial<MLConfig>): MLConfig {
         generateSummaries: override.generateSummaries ?? base.generateSummaries,
         generateTransitions: override.generateTransitions ?? base.generateTransitions,
         generateWhyItMatters: override.generateWhyItMatters ?? base.generateWhyItMatters,
+        openRouter: {
+            enabled: override.openRouter?.enabled ?? base.openRouter.enabled,
+            model: override.openRouter?.model ?? base.openRouter.model,
+        },
     };
     // Handle optional cacheDir
     const cacheDir = override.cacheDir ?? base.cacheDir;

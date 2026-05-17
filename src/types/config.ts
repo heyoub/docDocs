@@ -165,6 +165,16 @@ export interface ValidationConfig {
 export type MLDevice = 'cpu' | 'webgpu' | 'auto';
 
 /**
+ * OpenRouter cloud fallback for prose when local Web Workers are unavailable.
+ */
+export interface OpenRouterMLConfig {
+    /** Use OpenRouter when local ML is unavailable */
+    readonly enabled: boolean;
+    /** Model id (use openrouter/auto for dynamic routing) */
+    readonly model: string;
+}
+
+/**
  * Configuration for ML prose generation.
  */
 export interface MLConfig {
@@ -184,6 +194,8 @@ export interface MLConfig {
     readonly generateTransitions: boolean;
     /** Whether to generate "why it matters" explanations */
     readonly generateWhyItMatters: boolean;
+    /** OpenRouter cloud fallback configuration */
+    readonly openRouter: OpenRouterMLConfig;
 }
 
 // ============================================================

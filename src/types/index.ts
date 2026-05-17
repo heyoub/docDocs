@@ -31,6 +31,7 @@ export type {
     ValidationConfig,
     MLDevice,
     MLConfig,
+    OpenRouterMLConfig,
     LintRulesConfig,
     CoverageConfig,
     LintConfig,
