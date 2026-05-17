@@ -1,6 +1,6 @@
 /**
- * @fileoverview Configuration types for GenDocs extension.
- * Defines all configuration interfaces for .gendocs.json files.
+ * @fileoverview Configuration types for docDocs extension.
+ * Defines all configuration interfaces for .docdocs.json files.
  * Zero imports from other project files - this is Layer 0.
  *
  * @module types/config
@@ -65,7 +65,7 @@ export type LintSeverity = 'error' | 'warning' | 'off';
  * Configuration for documentation output.
  */
 export interface OutputConfig {
-    /** Directory for generated documentation (default: '.gendocs') */
+    /** Directory for generated documentation (default: '.docdocs') */
     readonly directory: string;
     /** Output formats to generate */
     readonly formats: readonly OutputFormat[];
@@ -365,15 +365,15 @@ export interface ChangelogConfig {
 // ============================================================
 
 /**
- * Complete GenDocs configuration schema.
- * This interface represents the structure of .gendocs.json files.
+ * Complete docDocs configuration schema.
+ * This interface represents the structure of .docdocs.json files.
  *
  * @example
  * ```json
  * {
  *   "version": 1,
  *   "output": {
- *     "directory": ".gendocs",
+ *     "directory": ".docdocs",
  *     "formats": ["markdown", "ai-context"],
  *     "clean": true
  *   },

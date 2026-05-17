@@ -4,5 +4,5 @@
 # - extraction.ts: Extraction types (ExtractedSymbol, FileExtraction)
 # - schema.ts: Schema types (SymbolSchema, ModuleSchema)
 # - graph.ts: Graph types (DependencyGraph, CallGraph)
-# - config.ts: Configuration types (GenDocsConfig)
+# - config.ts: Configuration types (GenDocsConfig - legacy name)
 # - lint.ts: Lint types (LintRule, LintResult)

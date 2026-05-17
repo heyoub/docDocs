@@ -1,5 +1,5 @@
 /**
- * @fileoverview Extraction types for GenDocs extension.
+ * @fileoverview Extraction types for docDocs extension.
  * This module defines types for symbol extraction from source code,
  * including extracted symbols, parameters, functions, and file-level extraction results.
  * Imports from types/base.ts and types/symbols.ts - Layer 0 of the type system.
@@ -220,4 +220,41 @@ export interface FileExtraction {
 
     /** Unix timestamp when extraction was performed */
     readonly timestamp: number;
+}
+
+// ============================================================
+// Extraction Error Types
+// ============================================================
+
+/**
+ * Errors during the generate pipeline (symbol extraction through schema generation).
+ */
+export type ExtractionError =
+    | { readonly type: 'symbol-extraction'; readonly uri: FileURI; readonly message: string }
+    | { readonly type: 'schema-generation'; readonly uri: FileURI; readonly message: string };
+
+/**
+ * Formats an extraction error for display in the UI or logs.
+ * @param error - The extraction error to format
+ * @returns Human-readable error message
+ */
+export function formatExtractionError(error: ExtractionError): string {
+    const path = filePathFromUri(error.uri);
+    switch (error.type) {
+        case 'symbol-extraction':
+            return `${path}: ${error.message}`;
+        case 'schema-generation':
+            return `${path}: ${error.message}`;
+    }
+}
+
+/**
+ * Extracts a filesystem path from a file URI for error display.
+ */
+function filePathFromUri(uri: FileURI): string {
+    try {
+        return decodeURIComponent(uri.replace(/^file:\/\//, ''));
+    } catch {
+        return uri;
+    }
 }

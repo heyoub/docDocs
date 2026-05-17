@@ -1,5 +1,5 @@
 /**
- * @fileoverview Symbol types for GenDocs extension.
+ * @fileoverview Symbol types for docDocs extension.
  * This module defines symbol kinds, modifiers, visibility, and the base symbol interface.
  * Imports only from types/base.ts - Layer 0 of the type system.
  *

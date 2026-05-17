@@ -1,5 +1,5 @@
 /**
- * @fileoverview Schema types for GenDocs extension.
+ * @fileoverview Schema types for docDocs extension.
  * This module defines JSON Schema output types for documentation generation.
  * Imports only from types/base.ts and types/symbols.ts - Layer 0 of the type system.
  *

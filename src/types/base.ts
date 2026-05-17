@@ -1,5 +1,5 @@
 /**
- * @fileoverview Foundational types for GenDocs extension.
+ * @fileoverview Foundational types for docDocs extension.
  * This module contains branded types, position/range interfaces, and result types.
  * Zero imports - this is the base layer of the type system.
  *

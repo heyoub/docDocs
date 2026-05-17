@@ -1,5 +1,5 @@
 /**
- * @fileoverview Barrel file for GenDocs type definitions.
+ * @fileoverview Barrel file for docDocs type definitions.
  * Re-exports all types from Layer 0 type modules.
  *
  * @module types
@@ -86,7 +86,10 @@ export type {
     ImportInfo,
     ExportInfo,
     FileExtraction,
+    ExtractionError,
 } from './extraction.js';
+
+export { formatExtractionError } from './extraction.js';
 
 // Schema types (depends on: base, symbols)
 export type {

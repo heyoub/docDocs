@@ -1,5 +1,5 @@
 /**
- * @fileoverview Extended analysis types for GenDocs extension.
+ * @fileoverview Extended analysis types for docDocs extension.
  * Defines types for control flow matrix, impact analysis, traceability, and hardening.
  * Imports only from types/base.ts - Layer 1 of the type system.
  *

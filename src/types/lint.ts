@@ -1,5 +1,5 @@
 /**
- * @fileoverview Lint types for GenDocs extension.
+ * @fileoverview Lint types for docDocs extension.
  * Defines interfaces for documentation linting results and fixes.
  * Imports from types/base.ts for location types.
  *

@@ -1,5 +1,5 @@
 /**
- * @fileoverview Changelog types for GenDocs extension.
+ * @fileoverview Changelog types for docDocs extension.
  * Defines types for API snapshots, semantic diffs, and changelog generation.
  * Imports only from types/base.ts and types/schema.ts - Layer 1 of the type system.
  *
