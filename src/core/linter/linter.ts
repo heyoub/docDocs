@@ -20,6 +20,7 @@ import {
     checkMissingExample,
     checkBrokenReference,
     checkUndocumentedExport,
+    lintStubsAndPlaceholders,
 } from './rules.js';
 
 // ============================================================
@@ -161,6 +162,14 @@ function lintSymbolWithConfig(
     if (refSeverity !== null) {
         results.push(...checkBrokenReference(symbol, allSymbols, refSeverity));
     }
+
+    results.push(
+        ...lintStubsAndPlaceholders(symbol, symbol.signature ?? '', {
+            'stub-detected': 'warning',
+            'placeholder-string': 'warning',
+            'incomplete-signature': 'info',
+        })
+    );
 
     return results;
 }
