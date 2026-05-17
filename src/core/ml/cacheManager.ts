@@ -119,7 +119,7 @@ export class ModelCacheManager {
         await this.saveManifest();
         return false;
       }
-      console.error(`[docDocs] Cache verification failed for ${modelId} at ${entry.path}:`, error);
+      console.warn('[docDocs] Cache verification failed for', modelId, 'at', entry.path, error);
       return false;
     }
   }
@@ -220,7 +220,7 @@ export class ModelCacheManager {
         await fs.rm(entry.path, { recursive: true, force: true });
       } catch (error) {
         // Log but don't fail if files already missing
-        console.warn(`Failed to delete model files: ${error}`);
+        console.warn('[docDocs] Failed to delete model files for', modelId, ':', error);
       }
 
       // Remove from manifest
@@ -270,7 +270,7 @@ export class ModelCacheManager {
       await fs.rm(this.modelsDir, { recursive: true, force: true });
       await fs.mkdir(this.modelsDir, { recursive: true });
     } catch (error) {
-      console.warn(`Failed to clear cache: ${error}`);
+      console.warn('[docDocs] Failed to clear model cache:', error);
     }
 
     // Reset manifest
@@ -345,14 +345,19 @@ export class ModelCacheManager {
         await this.saveManifest();
         return;
       }
-      console.error('[docDocs] Failed to load cache manifest:', error);
+      console.warn('[docDocs] Failed to load cache manifest:', error);
       this.manifest = { version: MANIFEST_VERSION, models: {} };
     }
   }
 
   private async saveManifest(): Promise<void> {
     if (!this.manifest) return;
-    await fs.writeFile(this.manifestPath, JSON.stringify(this.manifest, null, 2));
+    try {
+      await fs.writeFile(this.manifestPath, JSON.stringify(this.manifest, null, 2));
+    } catch (error) {
+      console.warn('[docDocs] Failed to save cache manifest:', this.manifestPath, error);
+      throw error;
+    }
   }
 
   private async ensureManifest(): Promise<void> {

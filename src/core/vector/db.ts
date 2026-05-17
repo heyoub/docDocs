@@ -156,8 +156,13 @@ export class VectorDatabase {
         this.tables.set(n, t);
       } catch (openError) {
         console.warn('[docDocs] Vector DB openTable failed, creating table:', n, openError);
-        const t = await db.createTable(n, recs);
-        this.tables.set(n, t);
+        try {
+          const t = await db.createTable(n, recs);
+          this.tables.set(n, t);
+        } catch (createError) {
+          console.warn('[docDocs] Vector DB createTable failed:', n, createError);
+          throw createError;
+        }
       }
     }
   }

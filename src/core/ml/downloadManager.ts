@@ -274,7 +274,8 @@ export class ModelDownloadManager {
         }
 
         if (response.statusCode === 404) {
-          // File not found - skip silently (some optional files may not exist)
+          // Optional HuggingFace assets may be absent; skip but log for diagnostics.
+          console.warn('[docDocs] Optional model file not found (HTTP 404), skipping:', url);
           resolve();
           return;
         }
@@ -319,7 +320,9 @@ export class ModelDownloadManager {
 
         file.on('error', (err) => {
           file.close();
-          fs.unlink(destPath).catch(() => {});
+          fs.unlink(destPath).catch((unlinkError) => {
+            console.warn('[docDocs] Failed to remove partial download:', destPath, unlinkError);
+          });
           reject(err);
         });
       });
@@ -356,7 +359,7 @@ export class ModelDownloadManager {
       if (code === 'ENOENT') {
         return 0;
       }
-      console.error(`[docDocs] getDirectorySize failed for ${dirPath}:`, error);
+      console.warn('[docDocs] getDirectorySize failed for', dirPath, error);
     }
 
     return size;

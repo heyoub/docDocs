@@ -268,7 +268,7 @@ export function registerTools(server: McpServer): void {
           const metrics = await analyzeComplexity(f.path);
           complexity = metrics.overall;
         } catch (error) {
-          console.warn('[docDocs MCP] Complexity analysis failed for', f.path, error);
+          console.warn('[docDocs] Complexity analysis failed for', f.path, error);
         }
 
         return {
@@ -321,7 +321,17 @@ export function registerTools(server: McpServer): void {
         };
       }
 
-      const content = fs.readFileSync(absolutePath, 'utf-8');
+      let content: string;
+      try {
+        content = fs.readFileSync(absolutePath, 'utf-8');
+      } catch (error) {
+        console.warn('[docDocs] Failed to read file for symbol extraction:', absolutePath, error);
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ error: 'Failed to read file' }) }],
+          isError: true,
+        };
+      }
+
       const symbols: Array<{
         kind: string;
         name: string;
@@ -501,7 +511,7 @@ export function registerTools(server: McpServer): void {
             });
           }
         } catch (error) {
-          console.warn('[docDocs MCP] Skipping file (read failed):', file, error);
+          console.warn('[docDocs] Skipping file (read failed):', file, error);
         }
       }
 
