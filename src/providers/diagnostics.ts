@@ -1,5 +1,5 @@
 /**
- * @fileoverview Diagnostics provider for GenDocs extension.
+ * @fileoverview Diagnostics provider for docDocs extension.
  * Maps lint results to VS Code diagnostics in the Problems panel.
  *
  * @module providers/diagnostics
@@ -14,10 +14,10 @@ import type { FileURI, LintResult, LintResultSeverity, SourceLocation } from '..
 // ============================================================
 
 /** Diagnostic source identifier */
-const DIAGNOSTIC_SOURCE = 'GenDocs';
+const DIAGNOSTIC_SOURCE = 'docDocs';
 
 /** Diagnostic collection name */
-const COLLECTION_NAME = 'gendocs-lint';
+const COLLECTION_NAME = 'docdocs-lint';
 
 // ============================================================
 // Severity Mapping
@@ -74,7 +74,7 @@ function createDiagnostic(result: LintResult): vscode.Diagnostic {
 // ============================================================
 
 /**
- * Manages GenDocs diagnostics in VS Code's Problems panel.
+ * Manages docDocs diagnostics in VS Code's Problems panel.
  * Provides methods to update, clear, and refresh diagnostics.
  */
 export class GenDocsDiagnosticsManager {
@@ -106,6 +106,21 @@ export class GenDocsDiagnosticsManager {
         }
 
         this.collection.set(entries);
+    }
+
+    /**
+     * Reports an LSP or schema extraction failure for a file (Problems panel).
+     */
+    reportExtractionFailure(uri: FileURI, message: string): void {
+        const vsUri = vscode.Uri.parse(uri);
+        const diagnostic = new vscode.Diagnostic(
+            new vscode.Range(0, 0, 0, 1),
+            message,
+            vscode.DiagnosticSeverity.Warning
+        );
+        diagnostic.source = DIAGNOSTIC_SOURCE;
+        diagnostic.code = 'extraction-failed';
+        this.collection.set(vsUri, [diagnostic]);
     }
 
     /**

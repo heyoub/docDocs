@@ -8,13 +8,15 @@
 
 import * as vscode from 'vscode';
 import type { FileURI, ModuleSchema, SymbolID, SymbolSchema } from '../types/index.js';
+import { formatExtractionError } from '../types/index.js';
+import { buildModuleSchema } from '../core/pipeline/buildModuleSchema.js';
 
 // ============================================================
 // Constants
 // ============================================================
 
 /** Configuration key for enabling/disabling completion provider */
-const CONFIG_COMPLETION_ENABLED = 'gendocs.completion.enabled';
+const CONFIG_COMPLETION_ENABLED = 'docdocs.completion.enabled';
 
 /** Maximum number of completion items to return */
 const MAX_COMPLETIONS = 10;
@@ -77,6 +79,42 @@ export function clearDocCache(): void {
         schemas: new Map(),
         symbolIndex: new Map(),
     };
+}
+
+/**
+ * Gets language ID from file extension (for live schema extraction).
+ */
+function getLanguageId(uri: vscode.Uri): string {
+    const ext = uri.fsPath.split('.').pop() ?? '';
+    const langMap: Record<string, string> = {
+        ts: 'typescript', tsx: 'typescriptreact',
+        js: 'javascript', jsx: 'javascriptreact',
+        py: 'python', rs: 'rust', go: 'go', hs: 'haskell',
+    };
+    return langMap[ext] ?? ext;
+}
+
+/**
+ * Ensures the doc cache has a schema for the document (LSP + schema generation).
+ * @returns The module schema, or null if extraction/generation failed.
+ */
+async function ensureDocCacheForDocument(
+    document: vscode.TextDocument
+): Promise<ModuleSchema | null> {
+    const uri = document.uri.toString() as FileURI;
+    const cached = docCache.schemas.get(uri);
+    if (cached) {
+        return cached;
+    }
+
+    const result = await buildModuleSchema(document.uri, getLanguageId(document.uri));
+    if (!result.ok) {
+        console.warn(`[docDocs] Completion: ${formatExtractionError(result.error)}`);
+        return null;
+    }
+
+    updateDocCache(uri, result.value);
+    return result.value;
 }
 
 // ============================================================
@@ -232,7 +270,7 @@ function mapSymbolKindToCompletionKind(kind: string): vscode.CompletionItemKind 
 // ============================================================
 
 /**
- * Completion provider that surfaces GenDocs documentation context.
+ * Completion provider that surfaces docDocs documentation context.
  * Prioritizes symbols near the cursor and provides rich documentation.
  *
  * @implements vscode.CompletionItemProvider
@@ -247,27 +285,27 @@ export class GenDocsCompletionProvider implements vscode.CompletionItemProvider 
      * @param _context - Additional context about the completion request
      * @returns Array of completion items with documentation
      */
-    provideCompletionItems(
+    async provideCompletionItems(
         document: vscode.TextDocument,
         position: vscode.Position,
         _token: vscode.CancellationToken,
         _context: vscode.CompletionContext
-    ): vscode.CompletionItem[] {
-        // Check if completion is enabled
+    ): Promise<vscode.CompletionItem[]> {
         const config = vscode.workspace.getConfiguration();
         const enabled = config.get<boolean>(CONFIG_COMPLETION_ENABLED, true);
         if (!enabled) {
             return [];
         }
 
-        // Get the word prefix at cursor
+        const schema = await ensureDocCacheForDocument(document);
+        if (!schema) {
+            return [];
+        }
+
         const wordRange = document.getWordRangeAtPosition(position);
         const prefix = wordRange ? document.getText(wordRange) : '';
 
-        // Get relevant symbols
         const symbols = getRelevantSymbols(document, position, prefix);
-
-        // Create completion items
         return symbols.map(createCompletionItem);
     }
 

@@ -1,5 +1,5 @@
 /**
- * @fileoverview Workspace symbol provider for GenDocs extension.
+ * @fileoverview Workspace symbol provider for docDocs extension.
  * Provides documented symbols in the workspace symbol search with doc icons.
  *
  * @module providers/symbols
